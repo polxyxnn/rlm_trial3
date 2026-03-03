@@ -388,12 +388,21 @@ if submitted:
 
 # ====================== SHOW MAP (PERSISTENT) ======================
 if st.session_state.map_object is not None:
+
     st.subheader("📍 Live Preview Map")
-    st_folium(st.session_state.map_object, width=1400, height=750)
+
+    st_folium(
+        st.session_state.map_object,
+        width=1400,
+        height=750,
+        returned_objects=[],
+        key="launch_map"
+    )
 
     col_clear, _ = st.columns([1, 3])
     with col_clear:
         if st.button("🗑️ Clear Map", use_container_width=True):
             st.session_state.map_object = None
+            st.rerun()
 
 st.caption("Philippine Space Agency • Streamlit Cloud Ready")
