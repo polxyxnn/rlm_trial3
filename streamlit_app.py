@@ -281,11 +281,6 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
 # ====================== STREAMLIT APP ======================
 st.title("🚀 Philippine Space Agency – Rocket Launch Monitoring")
 
-with st.sidebar:
-    st.image("utils", width=180)
-    st.header("📁 Paths")
-    shape_dir = st.text_input("Shapefiles Folder", value="SHAPE_DIR_DEFAULT")
-
 # ====================== FORM ======================
 launch_sites = ["Select...", "Hainan International Commercial Launch Center", "Jiuquan Satellite Launch Center",
                 "Wenchang Space Launch Site", "Xichang Satellite Launch Center",
