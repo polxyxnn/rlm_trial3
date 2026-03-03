@@ -13,11 +13,11 @@ from streamlit_folium import st_folium
 
 st.set_page_config(page_title="PhilSA Rocket Launch Monitoring", page_icon="🚀", layout="wide")
 
-SHAPE_DIR_DEFAULT = "utils/shapefiles"
-LOGO_PATH = "utils/logos/PhilSA_v1-01.png"
-
+# ====================== SAFE PATHS (GitHub / Streamlit Cloud) ======================
 if "shape_dir" not in st.session_state:
     st.session_state.shape_dir = "utils/shapefiles"
+
+LOGO_PATH = "utils/logos/PhilSA_v1-01.png"
 
 # ====================== UTILITY FUNCTIONS ======================
 def parse_coordinates(coord_str):
@@ -42,7 +42,7 @@ def parse_coordinates(coord_str):
         if lat_h == 'S': lat = -lat
         if lon_h == 'W': lon = -lon
         return round(lat, 6), round(lon, 6)
-    # 3-5) DMS, decimal with hemisphere, plain decimal (your original patterns - kept 100% identical)
+    # 3) DMS with symbols
     dms = re.findall(r'(\d+)[°\s]+(\d+)[\'\s]+(\d+)[\"\s]*([NS])', s)
     dms_lon = re.findall(r'(\d+)[°\s]+(\d+)[\'\s]+(\d+)[\"\s]*([EW])', s)
     if dms and dms_lon:
@@ -53,6 +53,7 @@ def parse_coordinates(coord_str):
         if lat_h == 'S': lat = -lat
         if lon_h == 'W': lon = -lon
         return round(lat, 6), round(lon, 6)
+    # 4) Decimal with hemisphere
     lat_match = re.search(r'([-+]?\d+(?:\.\d+)?)\s*([NS])', s)
     lon_match = re.search(r'([-+]?\d+(?:\.\d+)?)\s*([EW])', s)
     if lat_match and lon_match:
@@ -61,6 +62,7 @@ def parse_coordinates(coord_str):
         if lat_match.group(2) == 'S': lat = -abs(lat)
         if lon_match.group(2) == 'W': lon = -abs(lon)
         return round(lat, 6), round(lon, 6)
+    # 5) Plain decimal
     m = re.match(r'\s*([-+]?\d+(?:\.\d+)?)\s*[, \s]\s*([-+]?\d+(?:\.\d+)?)', s)
     if m:
         return round(float(m.group(1)), 6), round(float(m.group(2)), 6)
@@ -101,19 +103,21 @@ def utc_window_to_phst(window_utc: str) -> str:
         start_str, end_str = [x.strip() for x in s.split("-")]
         start_utc = datetime.strptime(start_str, "%H%M")
         end_utc = datetime.strptime(end_str, "%H%M")
-        if end_utc <= start_utc: end_utc += timedelta(days=1)
+        if end_utc <= start_utc:
+            end_utc += timedelta(days=1)
         start_ph = start_utc + timedelta(hours=8)
         end_ph = end_utc + timedelta(hours=8)
         return f"{start_ph.strftime('%I:%M %p').lstrip('0')} - {end_ph.strftime('%I:%M %p').lstrip('0')}"
-    except:
+    except Exception:
         return window_utc
 
 def validate_window_format(hhmm):
     try:
         s = str(hhmm).strip()
-        if not re.match(r'^\d{3,4}$', s): return False
+        if not re.match(r'^\d{3,4}$', s):
+            return False
         return 0 <= int(s) <= 2359
-    except:
+    except Exception:
         return False
 
 def format_window(start, end):
@@ -125,16 +129,18 @@ def format_window(start, end):
 @st.cache_data
 def load_mapping_data(shape_dir: str):
     data = {}
-    # Launch sites
+    # Launch sites CSV
     csv_path = os.path.join(shape_dir, "Launch_Centers_Coords.csv")
     if os.path.exists(csv_path):
         df = pd.read_csv(csv_path)
-        data["launch_sites"] = {str(row["Place"]).strip(): (float(row["Lat"]), float(row["Lon"])) 
-                                for _, row in df.iterrows()}
+        data["launch_sites"] = {
+            str(row["Place"]).strip(): (float(row["Lat"]), float(row["Lon"]))
+            for _, row in df.iterrows()
+        }
     else:
         data["launch_sites"] = {}
 
-    # Key locations
+    # Key locations shapefile
     key_path = os.path.join(shape_dir, "Updated_Key_Locations.shp")
     key_locations = {}
     if os.path.exists(key_path):
@@ -149,17 +155,17 @@ def load_mapping_data(shape_dir: str):
                 if row.geometry and row.geometry.geom_type == "Point":
                     label = str(row[name_field]).strip() if name_field else f"Key_{idx}"
                     key_locations[label] = (row.geometry.y, row.geometry.x)
-        except:
+        except Exception:
             pass
     data["key_locations"] = key_locations
 
-    # Shapefile paths
+    # Shapefiles
     data["manila_fir"] = os.path.join(shape_dir, "Manila_FIR_boundary.shp")
     data["baseline"] = os.path.join(shape_dir, "PH_Baseline.shp")
     data["eez"] = os.path.join(shape_dir, "eez.shp")
     return data
 
-# ====================== MAP FUNCTION ======================
+# ====================== MAP GENERATION ======================
 def create_folium_map(launch_site_value, dropzones, shape_dir):
     loaded = load_mapping_data(shape_dir)
     launch_site_coords = loaded["launch_sites"]
@@ -171,15 +177,13 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
         pts = [(lat, lon) for lat, lon in pts if lat is not None]
         if len(pts) >= 3:
             polygons.append((dz_id, pts))
-
         dpts = [parse_coordinates(c) for c in dz["debris"]]
         dpts = [(lat, lon) for lat, lon in dpts if lat is not None]
         if dpts:
             debris_points.append((dz_id, dpts))
 
     if not polygons and not debris_points:
-        m = folium.Map(location=[14.5, 120.5], zoom_start=6)
-        return m
+        return folium.Map(location=[14.5, 120.5], zoom_start=6)
 
     all_coords = [p for _, pts in polygons for p in pts] + [p for _, pts in debris_points for p in pts]
     avg_lat = sum(p[0] for p in all_coords) / len(all_coords)
@@ -190,15 +194,21 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
     # Launch site
     if launch_site_value in launch_site_coords:
         lat, lon = launch_site_coords[launch_site_value]
-        folium.Marker([lat, lon], popup=f"Launch Site: {launch_site_value}",
-                      icon=folium.Icon(color="green", icon="rocket", prefix="fa")).add_to(m)
+        folium.Marker(
+            [lat, lon],
+            popup=f"Launch Site: {launch_site_value}",
+            icon=folium.Icon(color="green", icon="rocket", prefix="fa")
+        ).add_to(m)
 
     # Key locations
     for name, (lat, lon) in key_locations.items():
-        folium.Marker([lat, lon], popup=name,
-                      icon=folium.Icon(color="red", icon="location-crosshairs", prefix="fa")).add_to(m)
+        folium.Marker(
+            [lat, lon],
+            popup=name,
+            icon=folium.Icon(color="red", icon="location-crosshairs", prefix="fa")
+        ).add_to(m)
 
-    # Shapefile overlays (exact same as your original)
+    # Shapefile overlays
     for path, color, weight, fill in [
         (loaded["manila_fir"], "darkblue", 1.5, False),
         (loaded["baseline"], "gold", 1.5, False),
@@ -209,31 +219,42 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
                 gdf = gpd.read_file(path)
                 for _, row in gdf.iterrows():
                     geom = row.geometry
-                    if not geom: continue
-                    polys = [geom] if geom.geom_type == "Polygon" else list(geom.geoms) if geom.geom_type == "MultiPolygon" else []
+                    if not geom:
+                        continue
+                    polys = [geom] if geom.geom_type == "Polygon" else list(geom.geoms) if hasattr(geom, "geoms") else []
                     for poly in polys:
                         x, y = poly.exterior.xy
+                        locations = list(zip(y, x))
                         if fill:
-                            folium.Polygon(list(zip(y, x)), color=color, weight=weight, fill=True, fill_opacity=0.05).add_to(m)
+                            folium.Polygon(
+                                locations, color=color, weight=weight, fill=True, fill_opacity=0.05
+                            ).add_to(m)
                         else:
-                            folium.PolyLine(list(zip(y, x)), color=color, weight=weight).add_to(m)
-            except:
+                            folium.PolyLine(locations, color=color, weight=weight).add_to(m)
+            except Exception:
                 pass
 
-    # Dropzones
+    # Dropzone polygons + vertices
     colors = ['darkgreen', 'green', 'darkblue', 'purple']
     for idx, (dzid, pts) in enumerate(polygons):
-        folium.Polygon(pts, popup=f"{dzid}", color=colors[idx % 4], fill=True, fill_opacity=0.3).add_to(m)
+        folium.Polygon(
+            pts, popup=f"{dzid} polygon", color=colors[idx % 4], fill=True, fill_opacity=0.3
+        ).add_to(m)
         for vi, (lat, lon) in enumerate(pts):
-            folium.CircleMarker([lat, lon], radius=4, fill=True, popup=f"{dzid} V{vi+1}").add_to(m)
+            folium.CircleMarker(
+                [lat, lon], radius=4, fill=True, popup=f"{dzid} V{vi+1}"
+            ).add_to(m)
 
-    # Debris
+    # Debris points
     for _, (dzid, dpts) in enumerate(debris_points):
         for di, (lat, lon) in enumerate(dpts):
-            folium.Marker([lat, lon], popup=f"{dzid} debris {di+1}",
-                          icon=folium.Icon(color="black", icon="trash", prefix="fa")).add_to(m)
+            folium.Marker(
+                [lat, lon],
+                popup=f"{dzid} debris {di+1}",
+                icon=folium.Icon(color="black", icon="trash", prefix="fa")
+            ).add_to(m)
 
-    # Rocket ground track (your exact logic)
+    # Rocket ground track
     def polygon_centroid(pts):
         poly = Polygon([(lon, lat) for lat, lon in pts])
         c = poly.centroid
@@ -254,8 +275,10 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
         lon1 = math.radians(lon)
         d_div_r = distance_km / R
         lat2 = math.asin(math.sin(lat1)*math.cos(d_div_r) + math.cos(lat1)*math.sin(d_div_r)*math.cos(bearing))
-        lon2 = lon1 + math.atan2(math.sin(bearing)*math.sin(d_div_r)*math.cos(lat1),
-                                 math.cos(d_div_r) - math.sin(lat1)*math.sin(lat2))
+        lon2 = lon1 + math.atan2(
+            math.sin(bearing)*math.sin(d_div_r)*math.cos(lat1),
+            math.cos(d_div_r) - math.sin(lat1)*math.sin(lat2)
+        )
         return (math.degrees(lat2), math.degrees(lon2))
 
     centroids = [polygon_centroid(pts) for _, pts in polygons if len(pts) >= 3]
@@ -268,29 +291,51 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
             last_bearing = bearing_between(route[0], centroids[-1])
         ext = destination_point(centroids[-1][0], centroids[-1][1], last_bearing, 1852)
         route.append(ext)
-        folium.PolyLine(route, color="black", weight=2, dash_array="5,10", popup="Rocket Ground Track").add_to(m)
+        folium.PolyLine(
+            route, color="black", weight=2, dash_array="5,10", popup="Rocket Ground Track"
+        ).add_to(m)
 
     # Legend
-    legend = """<div style="position:fixed;bottom:30px;left:30px;z-index:9999;background:white;padding:10px;border:2px solid grey;font-size:13px;">
+    legend_html = """
+    <div style="position:fixed;bottom:30px;left:30px;z-index:9999;background:white;padding:10px;border:2px solid grey;font-size:13px;">
     <b>Legend</b><br>
     <i class="fa fa-rocket" style="color:green"></i> Launch Site<br>
     <i class="fa fa-location-crosshairs" style="color:red"></i> Key Locations<br>
     <i class="fa fa-trash" style="color:black"></i> Debris<br>
-    <span style="color:darkgreen;">■</span> Dropzone
-    </div>"""
-    m.get_root().html.add_child(folium.Element(legend))
+    <span style="color:darkgreen;">■</span> Dropzone Polygon
+    </div>
+    """
+    m.get_root().html.add_child(folium.Element(legend_html))
     return m
 
-# ====================== STREAMLIT APP ======================
+# ====================== MAIN STREAMLIT APP ======================
 st.title("🚀 Philippine Space Agency – Rocket Launch Monitoring")
 
-# ====================== FORM ======================
-launch_sites = ["Select...", "Hainan International Commercial Launch Center", "Jiuquan Satellite Launch Center",
-                "Wenchang Space Launch Site", "Xichang Satellite Launch Center",
-                "Naro Space Center", "Sohae Satellite Launching Station", "Unchinoura Space Center", "Other"]
+with st.sidebar:
+    if os.path.exists(LOGO_PATH):
+        st.image(LOGO_PATH, width=180)
+    else:
+        st.warning("⚠️ Logo not found at `utils/logos/PhilSA_v1-01.png`")
+        st.info("Make sure the `utils/logos/` folder is committed to GitHub.")
 
-countries = ["Select...", "People's Republic of China", "Japan",
-             "Democratic People's Republic of Korea", "Republic of Korea"]
+    st.header("📁 Paths")
+    new_shape_dir = st.text_input(
+        "Shapefiles Folder",
+        value=st.session_state.shape_dir,
+        key="shape_dir_input"
+    )
+    if new_shape_dir != st.session_state.shape_dir:
+        st.session_state.shape_dir = new_shape_dir
+
+launch_sites = [
+    "Select...", "Hainan International Commercial Launch Center", "Jiuquan Satellite Launch Center",
+    "Wenchang Space Launch Site", "Xichang Satellite Launch Center",
+    "Naro Space Center", "Sohae Satellite Launching Station", "Unchinoura Space Center", "Other"
+]
+countries = [
+    "Select...", "People's Republic of China", "Japan",
+    "Democratic People's Republic of Korea", "Republic of Korea"
+]
 
 with st.form("rocket_launch_form"):
     st.subheader("🛰 Launch Information")
@@ -317,23 +362,32 @@ with st.form("rocket_launch_form"):
             with st.expander(f"**Dropzone {i}**", expanded=True):
                 st.caption("Vertices (order matters)")
                 for j in range(8):
-                    st.text_input(f"V{j+1}", placeholder="14.123456 120.987654 or N1412 E12045",
-                                  key=f"v_{i}_{j}")
+                    st.text_input(
+                        f"V{j+1}",
+                        placeholder="14.123456 120.987654 or N1412 E12045",
+                        key=f"v_{i}_{j}"
+                    )
                 st.caption("Debris Points")
                 for j in range(4):
-                    st.text_input(f"D{j+1}", placeholder="14.123456 120.987654",
-                                  key=f"d_{i}_{j}")
+                    st.text_input(
+                        f"D{j+1}",
+                        placeholder="14.123456 120.987654",
+                        key=f"d_{i}_{j}"
+                    )
 
-    submitted = st.form_submit_button("🚀 Submit – Preview Map & Generate Files", type="primary", use_container_width=True)
+    submitted = st.form_submit_button(
+        "🚀 Submit – Preview Map & Generate Files",
+        type="primary",
+        use_container_width=True
+    )
 
-# ====================== PROCESS ON SUBMIT ======================
 if submitted:
     window_utc = format_window(st.session_state.start_time, st.session_state.end_time)
     if window_utc is None:
         st.error("❌ Invalid time window. Use HHMM format (e.g. 0745)")
         st.stop()
 
-    # Build dropzones dict
+    # Build dropzones
     dropzones = {}
     for i in range(1, 5):
         dropzones[f"DZ{i}"] = {
@@ -341,15 +395,19 @@ if submitted:
             "debris": [st.session_state[f"d_{i}_{j}"] for j in range(4)]
         }
 
-    # Preview Map
+    # Preview map
     with st.spinner("Building interactive map..."):
-        m = create_folium_map(st.session_state.launch_site, dropzones, shape_dir)
+        m = create_folium_map(
+            st.session_state.launch_site,
+            dropzones,
+            st.session_state.shape_dir
+        )
         st_folium(m, width=1400, height=750)
 
     # Generate files
     window_phst = utc_window_to_phst(window_utc)
-    dz_compact = [[convert_to_compact(c) for c in dropzones[f"DZ{i}"]["vertices"]] for i in range(1,5)]
-    deb_compact = [[convert_to_compact(c) for c in dropzones[f"DZ{i}"]["debris"]] for i in range(1,5)]
+    dz_compact = [[convert_to_compact(c) for c in dropzones[f"DZ{i}"]["vertices"]] for i in range(1, 5)]
+    deb_compact = [[convert_to_compact(c) for c in dropzones[f"DZ{i}"]["debris"]] for i in range(1, 5)]
 
     date_str = st.session_state.launch_date.strftime("%m%d%y")
     formatted_date = st.session_state.launch_date.strftime("%d %B %Y")
@@ -370,22 +428,25 @@ if submitted:
             row_base[f"DEB{i+1} P{j+1}"] = deb_compact[i][j]
 
     info_df = pd.DataFrame([{"LAUNCH DATE": f"'{formatted_date}", **row_base}])
-    info_xlsx_df = pd.DataFrame([{"LAUNCH DATE": f'=TEXT(DATE({st.session_state.launch_date.year},{st.session_state.launch_date.month},{st.session_state.launch_date.day}),"dd MMMM yyyy")', **row_base}])
+    info_xlsx_df = pd.DataFrame([{
+        "LAUNCH DATE": f'=TEXT(DATE({st.session_state.launch_date.year},{st.session_state.launch_date.month},{st.session_state.launch_date.day}),"dd MMMM yyyy")',
+        **row_base
+    }])
 
-    # Vertices & Debris CSVs
+    # Vertices & Debris
     vertices_rows, debris_rows = [], []
     for i in range(1, 5):
         dz = dropzones[f"DZ{i}"]
         for vi, c in enumerate(dz["vertices"]):
             lat, lon = parse_coordinates(c)
             if lat is not None:
-                vertices_rows.append({"DZ_ID": f"DZ{i}", "VERTEX_ID": vi+1, "LAT": lat, "LON": lon})
+                vertices_rows.append({"DZ_ID": f"DZ{i}", "VERTEX_ID": vi + 1, "LAT": lat, "LON": lon})
         for di, c in enumerate(dz["debris"]):
             lat, lon = parse_coordinates(c)
             if lat is not None:
-                debris_rows.append({"DZ_ID": f"DZ{i}", "DB_ID": di+1, "LAT": lat, "LON": lon})
+                debris_rows.append({"DZ_ID": f"DZ{i}", "DB_ID": di + 1, "LAT": lat, "LON": lon})
 
-    # ZIP
+    # Create ZIP
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr(f"Info_{date_str}.csv", info_df.to_csv(index=False).encode())
@@ -407,4 +468,4 @@ if submitted:
         use_container_width=True
     )
 
-st.caption("Philippine Space Agency • PyQt6 → Streamlit with st.form")
+st.caption("Philippine Space Agency • Streamlit Cloud Ready")
