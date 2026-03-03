@@ -282,9 +282,9 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
 st.title("🚀 Philippine Space Agency – Rocket Launch Monitoring")
 
 with st.sidebar:
-    st.image(r"C:\Users\user-62D4847600\OneDrive - Philippine Space Agency\Rocket Launch\Map Layout\Logos\PhilSA_v1-01.png", width=180)
+    st.image("utils", width=180)
     st.header("📁 Paths")
-    shape_dir = st.text_input("Shapefiles Folder", value=r"C:\Users\user-62D4847600\OneDrive - Philippine Space Agency\Rocket Launch\Map Layout\Shapefiles")
+    shape_dir = st.text_input("Shapefiles Folder", value="SHAPE_DIR_DEFAULT")
 
 # ====================== FORM ======================
 launch_sites = ["Select...", "Hainan International Commercial Launch Center", "Jiuquan Satellite Launch Center",
