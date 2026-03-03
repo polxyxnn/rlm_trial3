@@ -291,8 +291,8 @@ with st.form("rocket_launch_form"):
 
     col4, col5, col6 = st.columns([1, 1, 1])
     with col4: st.date_input("Launch Date", value=date.today(), key="launch_date")
-    with col5: st.text_input("Window Start (HHMM)", "0745", key="start_time")
-    with col6: st.text_input("Window End (HHMM)", "0810", key="end_time")
+    with col5: st.text_input("Window Start (HHMM)", placeholder="0745", key="start_time")
+    with col6: st.text_input("Window End (HHMM)", placeholder="0810", key="end_time")
 
     st.subheader("🌍 Dropzones DZ1–DZ4")
     cols = st.columns(4)
@@ -301,10 +301,10 @@ with st.form("rocket_launch_form"):
             with st.expander(f"**Dropzone {i}**", expanded=True):
                 st.caption("Vertices")
                 for j in range(8):
-                    st.text_input(f"V{j+1}", placeholder="14.123456 120.987654", key=f"v_{i}_{j}")
+                    st.text_input(f"V{j+1}", key=f"v_{i}_{j}")
                 st.caption("Debris")
                 for j in range(4):
-                    st.text_input(f"D{j+1}", placeholder="14.123456 120.987654", key=f"d_{i}_{j}")
+                    st.text_input(f"D{j+1}", key=f"d_{i}_{j}")
 
     submitted = st.form_submit_button("🚀 Submit – Preview Map & Generate Files", type="primary", use_container_width=True)
 
