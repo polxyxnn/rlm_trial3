@@ -310,7 +310,7 @@ with st.form("rocket_launch_form"):
 
 # ====================== PERSISTENT MAP DISPLAY ======================
 if "map_object" not in st.session_state:
-    st.session_state.map_object = None
+    st.session_state.map_object = 0
 
 if submitted:
     window_utc = format_window(st.session_state.start_time, st.session_state.end_time)
