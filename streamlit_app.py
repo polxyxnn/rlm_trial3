@@ -311,22 +311,6 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
 # ====================== MAIN STREAMLIT APP ======================
 st.title("🚀 Philippine Space Agency – Rocket Launch Monitoring")
 
-with st.sidebar:
-    if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, width=180)
-    else:
-        st.warning("⚠️ Logo not found at `utils/logos/PhilSA_v1-01.png`")
-        st.info("Make sure the `utils/logos/` folder is committed to GitHub.")
-
-    st.header("📁 Paths")
-    new_shape_dir = st.text_input(
-        "Shapefiles Folder",
-        value=st.session_state.shape_dir,
-        key="shape_dir_input"
-    )
-    if new_shape_dir != st.session_state.shape_dir:
-        st.session_state.shape_dir = new_shape_dir
-
 launch_sites = [
     "Select...", "Hainan International Commercial Launch Center", "Jiuquan Satellite Launch Center",
     "Wenchang Space Launch Site", "Xichang Satellite Launch Center",
