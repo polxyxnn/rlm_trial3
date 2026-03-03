@@ -172,7 +172,7 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
     avg_lat = sum(p[0] for p in all_coords) / len(all_coords)
     avg_lon = sum(p[1] for p in all_coords) / len(all_coords)
 
-    m = folium.Map(location=[avg_lat, avg_lon], zoom_start=7, tiles="CartoDB positron")
+    m = folium.Map(location=[avg_lat, avg_lon], zoom_start=7)
 
     if launch_site_value in loaded["launch_sites"]:
         lat, lon = loaded["launch_sites"][launch_site_value]
