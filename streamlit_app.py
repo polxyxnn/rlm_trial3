@@ -16,6 +16,9 @@ st.set_page_config(page_title="PhilSA Rocket Launch Monitoring", page_icon="🚀
 SHAPE_DIR_DEFAULT = "utils/shapefiles"
 LOGO_PATH = "utils/logos/PhilSA_v1-01.png"
 
+if "shape_dir" not in st.session_state:
+    st.session_state.shape_dir = "utils/shapefiles"
+
 # ====================== UTILITY FUNCTIONS ======================
 def parse_coordinates(coord_str):
     if not coord_str or not isinstance(coord_str, str):
