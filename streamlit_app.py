@@ -13,27 +13,6 @@ from streamlit_folium import st_folium
 
 st.set_page_config(page_title="PhilSA Rocket Launch Monitoring", page_icon="🚀", layout="wide")
 
-# ====================== DYNAMIC DROPZONE STORAGE ======================
-if "dz_vertices" not in st.session_state:
-    st.session_state.dz_vertices = {f"DZ{i}": [""] * 5 for i in range(1, 5)}  # start with 5 vertices
-    st.session_state.dz_debris   = {f"DZ{i}": [""] * 4 for i in range(1, 5)}
-
-# Keep lists in sync with text inputs on every rerun
-for i in range(1, 5):
-    dz = f"DZ{i}"
-    
-    # Sync vertices
-    for idx in range(len(st.session_state.dz_vertices[dz])):
-        key = f"{dz}_vert_{idx}"
-        if key in st.session_state:
-            st.session_state.dz_vertices[dz][idx] = st.session_state[key]
-    
-    # Sync debris
-    for j in range(4):
-        key = f"{dz}_deb_{j}"
-        if key in st.session_state:
-            st.session_state.dz_debris[dz][j] = st.session_state[key]
-            
 # ====================== SAFE PATHS ======================
 if "shape_dir" not in st.session_state:
     st.session_state.shape_dir = "utils/shapefiles"
@@ -312,86 +291,22 @@ with st.form("rocket_launch_form"):
 
     col4, col5, col6 = st.columns([1, 1, 1])
     with col4: st.date_input("Launch Date", value=date.today(), key="launch_date")
-    with col5: st.text_input("Window Start (HHMM)", placeholder="0745", key="start_time")
-    with col6: st.text_input("Window End (HHMM)", placeholder="0810", key="end_time")
-
-    # st.subheader("🌍 Dropzones DZ1–DZ4")
-    # cols = st.columns(4)
-    # for i, col in enumerate(cols, 1):
-    #     with col:
-    #         with st.expander(f"**Dropzone {i}**", expanded=True):
-    #             st.caption("Vertices")
-    #             for j in range(8):
-    #                 st.text_input(f"V{j+1}", key=f"v_{i}_{j}")
-    #             st.caption("Debris")
-    #             for j in range(4):
-    #                 st.text_input(f"D{j+1}", key=f"d_{i}_{j}")
-
-    # submitted = st.form_submit_button("🚀 Submit – Preview Map & Generate Files", type="primary", use_container_width=True)
+    with col5: st.text_input("Window Start (HHMM)", "0745", key="start_time")
+    with col6: st.text_input("Window End (HHMM)", "0810", key="end_time")
 
     st.subheader("🌍 Dropzones DZ1–DZ4")
-
-    for i in range(1, 5):
-        dz = f"DZ{i}"
-        with st.expander(f"**Dropzone {i}**", expanded=(i == 1)):
-            
-            st.caption("**Vertices** (minimum 3 recommended)")
-            current_verts = st.session_state.dz_vertices[dz]
-            
-            for idx in range(len(current_verts)):
-                st.text_input(
-                    label=f"Vertex {idx+1}",
-                    value=current_verts[idx],
-                    key=f"{dz}_vert_{idx}",
-                    placeholder="e.g. 14°35'12\"N 120°12'45\"E"
-                )
-
-            # Add / Remove buttons
-            col_add, col_rem, _ = st.columns([1, 1, 4])
-            with col_add:
-                if st.button("➕ Add Vertex", key=f"add_v_{dz}", use_container_width=True):
-                    if len(current_verts) < 10:          # safety limit
-                        st.session_state.dz_vertices[dz].append("")
-                        st.rerun()
-                    else:
-                        st.warning("Maximum 10 vertices")
-            with col_rem:
-                if len(current_verts) > 3 and st.button("➖ Remove Last", key=f"rem_v_{dz}", use_container_width=True):
-                    st.session_state.dz_vertices[dz].pop()
-                    st.rerun()
-
-            st.caption("**Debris Points** (fixed 4)")
-            for j in range(4):
-                st.text_input(
-                    label=f"Debris {j+1}",
-                    value=st.session_state.dz_debris[dz][j],
-                    key=f"{dz}_deb_{j}",
-                    placeholder="e.g. 14.5N 120.5E"
-                )
+    cols = st.columns(4)
+    for i, col in enumerate(cols, 1):
+        with col:
+            with st.expander(f"**Dropzone {i}**", expanded=True):
+                st.caption("Vertices")
+                for j in range(8):
+                    st.text_input(f"V{j+1}", placeholder="14.123456 120.987654", key=f"v_{i}_{j}")
+                st.caption("Debris")
+                for j in range(4):
+                    st.text_input(f"D{j+1}", placeholder="14.123456 120.987654", key=f"d_{i}_{j}")
 
     submitted = st.form_submit_button("🚀 Submit – Preview Map & Generate Files", type="primary", use_container_width=True)
-
-    if submitted:
-        window_utc = format_window(st.session_state.start_time, st.session_state.end_time)
-        if window_utc is None:
-            st.error("❌ Invalid time window. Use HHMM format (e.g. 0745)")
-            st.stop()
-
-    # Collect from session_state (already synced)
-        dropzones = {}
-        for i in range(1, 5):
-            dz_key = f"DZ{i}"
-            dropzones[dz_key] = {
-                "vertices": st.session_state.dz_vertices[dz_key].copy(),
-                "debris":   st.session_state.dz_debris[dz_key].copy()
-            }
-
-    # Optional: quick validation
-        for dz_id, dz in dropzones.items():
-            valid_verts = [p for p in dz["vertices"] if p.strip()]
-            if len(valid_verts) < 3 and any(p.strip() for p in dz["vertices"]):
-                st.error(f"❌ {dz_id} needs at least 3 valid vertices")
-                st.stop()
 
 # ====================== PERSISTENT MAP DISPLAY ======================
 if "map_object" not in st.session_state:
@@ -419,14 +334,7 @@ if submitted:
 
     # Generate files (same as before)
     window_phst = utc_window_to_phst(window_utc)
-    # dz_compact = [[convert_to_compact(c) for c in dropzones[f"DZ{i}"]["vertices"]] for i in range(1,5)]
-    # Convert and pad to exactly 8 columns (what CAAP expects)
-    dz_compact = []
-    for i in range(1, 5):
-        verts = dropzones[f"DZ{i}"]["vertices"]
-        compact_verts = [convert_to_compact(c) for c in verts]
-        compact_verts += [""] * (8 - len(compact_verts))   # pad
-        dz_compact.append(compact_verts[:8])               # never more than 8
+    dz_compact = [[convert_to_compact(c) for c in dropzones[f"DZ{i}"]["vertices"]] for i in range(1,5)]
     deb_compact = [[convert_to_compact(c) for c in dropzones[f"DZ{i}"]["debris"]] for i in range(1,5)]
 
     date_str = st.session_state.launch_date.strftime("%m%d%y")
