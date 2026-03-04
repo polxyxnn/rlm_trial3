@@ -145,93 +145,40 @@ def format_window(start, end):
     return f"{str(start).zfill(4)}-{str(end).zfill(4)} UTC"
 
 # ====================== NOTAM PDF PARSER ======================
-# def extract_notam_data(uploaded_file):
-#     if PdfReader is None:
-#         st.error("❌ `pypdf` is not installed. Run: `pip install pypdf`")
-#         return [], {}
-#     try:
-#         reader = PdfReader(uploaded_file)
-#         text = "".join(page.extract_text() or "" for page in reader.pages)
-#         text_upper = text.upper()
-
-#         coord_pattern = r'(\d{6}[NS])\s*(\d{7}[EW])'
-#         matches = re.findall(coord_pattern, text_upper)
-#         coord_strings = [f"{lat} {lon}" for lat, lon in matches]
-#         if len(coord_strings) > 3 and coord_strings[0] == coord_strings[-1]:
-#             coord_strings = coord_strings[:-1]
-
-#         d_match = re.search(r'D\)\s*(\d{4})-(\d{4})', text_upper)
-#         start_time = d_match.group(1) if d_match else ""
-#         end_time = d_match.group(2) if d_match else ""
-#         if not start_time:
-#             b_match = re.search(r'B\)\s*\d{6}(\d{4})', text_upper)
-#             if b_match:
-#                 start_time = b_match.group(1)
-
-#         #country = "People's Republic of China" if re.search(r'CHINA|PRC', text_upper) else ""
-#         #mission_match = re.search(r'SPECIAL OPS \((.*?)\)', text, re.IGNORECASE)
-#         #mission = mission_match.group(1).strip() if mission_match else "AEROSPACE FLT ACT"
-
-#         return coord_strings, {
-#             "start_time": start_time,
-#             "end_time": end_time
-#         }
-#     except Exception as e:
-#         st.error(f"Error parsing {uploaded_file.name}: {str(e)}")
-#         return [], {}
-
-# ====================== NOTAM PDF PARSER ======================
-def extract_notam_data(uploaded_files):
-    """
-    uploaded_files: list of uploaded files (Streamlit upload_files)
-    Returns:
-        all_coords: list of all coordinates from all PDFs
-        times_dict: {
-            "start_time": from B) of first PDF,
-            "end_time": from C) of last PDF
-        }
-    """
+def extract_notam_data(uploaded_file):
     if PdfReader is None:
         st.error("❌ `pypdf` is not installed. Run: `pip install pypdf`")
         return [], {}
+    try:
+        reader = PdfReader(uploaded_file)
+        text = "".join(page.extract_text() or "" for page in reader.pages)
+        text_upper = text.upper()
 
-    all_coords = []
-    start_time = ""
-    end_time = ""
+        coord_pattern = r'(\d{6}[NS])\s*(\d{7}[EW])'
+        matches = re.findall(coord_pattern, text_upper)
+        coord_strings = [f"{lat} {lon}" for lat, lon in matches]
+        if len(coord_strings) > 3 and coord_strings[0] == coord_strings[-1]:
+            coord_strings = coord_strings[:-1]
 
-    for idx, uploaded_file in enumerate(uploaded_files):
-        try:
-            reader = PdfReader(uploaded_file)
-            text = "".join(page.extract_text() or "" for page in reader.pages)
-            text_upper = text.upper()
+        c_match = re.search(r'C\)\s*(\d{4})-(\d{4})', text_upper)
+        start_time = c_match.group(1) if c_match else ""
+        end_time = c_match.group(2) if c_match else ""
+        if not start_time:
+            b_match = re.search(r'B\)\s*\d{6}(\d{4})', text_upper)
+            if b_match:
+                start_time = b_match.group(1)
 
-            # ---------------- Coordinates ----------------
-            coord_pattern = r'(\d{6}[NS])\s*(\d{7}[EW])'
-            matches = re.findall(coord_pattern, text_upper)
-            coord_strings = [f"{lat} {lon}" for lat, lon in matches]
+        #country = "People's Republic of China" if re.search(r'CHINA|PRC', text_upper) else ""
+        #mission_match = re.search(r'SPECIAL OPS \((.*?)\)', text, re.IGNORECASE)
+        #mission = mission_match.group(1).strip() if mission_match else "AEROSPACE FLT ACT"
 
-            # Remove last point if it duplicates first (closed polygon)
-            if len(coord_strings) > 3 and coord_strings[0] == coord_strings[-1]:
-                coord_strings = coord_strings[:-1]
-
-            all_coords.extend(coord_strings)
-
-            # ---------------- Times ----------------
-            if idx == 0:  # first PDF → start_time from B)
-                b_match = re.search(r'B\)\s*\d{6}(\d{4})', text_upper)
-                if b_match:
-                    start_time = b_match.group(1)
-
-            if idx == len(uploaded_files) - 1:  # last PDF → end_time from C)
-                c_match = re.search(r'C\)\s*(\d{4})-(\d{4})', text_upper)
-                if c_match:
-                    end_time = c_match.group(2)
-
-        except Exception as e:
-            st.error(f"Error parsing {uploaded_file.name}: {str(e)}")
-            continue
-
-    return all_coords, {"start_time": start_time, "end_time": end_time}
+        return coord_strings, {
+            "start_time": start_time,
+            "end_time": end_time
+        }
+    except Exception as e:
+        st.error(f"Error parsing {uploaded_file.name}: {str(e)}")
+        return [], {}
 
 # ====================== CACHED DATA & MAP ======================
 @st.cache_data
