@@ -169,7 +169,7 @@ def extract_notam_data(uploaded_file):
         #         start_time = b_match.group(1)
 
         # === TIME PARSING (kept for compatibility) ===
-        d_matches = re.findall(r'D\)\s*(\d{4})-(\d{4})', text_upper)
+        d_matches = re.findall(r'D\)\s*(\d{6})(\d{4})', text_upper)
         start_time = d_matches[0][0] if d_matches else ""
         end_time   = d_matches[0][1] if d_matches else ""
         if not start_time:
@@ -183,7 +183,7 @@ def extract_notam_data(uploaded_file):
         start_from_b = b_matches[0] if b_matches else ""
 
         # End time from D) line
-        d_matches_end = re.findall(r'D\)\s*(\d{4})-(\d{4})', text_upper)
+        d_matches_end = re.findall(r'D\)\s*(\d{6})(\d{4})', text_upper)
         end_from_d = d_matches_end[0][1] if d_matches_end else ""
 
         #country = "People's Republic of China" if re.search(r'CHINA|PRC', text_upper) else ""
