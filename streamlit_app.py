@@ -369,13 +369,13 @@ with st.form("rocket_launch_form"):
                     placeholder="e.g. 14.5N 120.5E"
                 )
 
-        submitted = st.form_submit_button("🚀 Submit – Preview Map & Generate Files", type="primary", use_container_width=True)
+    submitted = st.form_submit_button("🚀 Submit – Preview Map & Generate Files", type="primary", use_container_width=True)
 
-        if submitted:
-            window_utc = format_window(st.session_state.start_time, st.session_state.end_time)
-            if window_utc is None:
-                st.error("❌ Invalid time window. Use HHMM format (e.g. 0745)")
-                st.stop()
+    if submitted:
+        window_utc = format_window(st.session_state.start_time, st.session_state.end_time)
+        if window_utc is None:
+            st.error("❌ Invalid time window. Use HHMM format (e.g. 0745)")
+            st.stop()
 
     # Collect from session_state (already synced)
         dropzones = {}
