@@ -169,9 +169,9 @@ def extract_notam_data(uploaded_file):
         #         start_time = b_match.group(1)
 
         # === TIME PARSING (kept for compatibility) ===
-        d_matches = re.findall(r'D\)\s*(\d{6})(\d{4})', text_upper)
-        start_time = d_matches[0][0] if d_matches else ""
-        end_time   = d_matches[0][1] if d_matches else ""
+        c_matches = re.findall(r'C\)\s*(\d{6})(\d{4})', text_upper)
+        start_time = c_matches[0][0] if c_matches else ""
+        end_time   = c_matches[0][1] if c_matches else ""
         if not start_time:
             b_matches = re.findall(r'B\)\s*\d{6}(\d{4})', text_upper)
             if b_matches:
@@ -183,8 +183,8 @@ def extract_notam_data(uploaded_file):
         start_from_b = b_matches[0] if b_matches else ""
 
         # End time from D) line
-        d_matches_end = re.findall(r'D\)\s*(\d{6})(\d{4})', text_upper)
-        end_from_d = d_matches_end[0][1] if d_matches_end else ""
+        c_matches_end = re.findall(r'C\)\s*(\d{6})(\d{4})', text_upper)
+        end_from_c = c_matches_end[0][1] if c_matches_end else ""
 
         #country = "People's Republic of China" if re.search(r'CHINA|PRC', text_upper) else ""
         #mission_match = re.search(r'SPECIAL OPS \((.*?)\)', text, re.IGNORECASE)
@@ -194,7 +194,7 @@ def extract_notam_data(uploaded_file):
             "start_time": start_time,
             "end_time": end_time,
             "start_from_b": start_from_b,   # Used for 1st PDF
-            "end_from_d": end_from_d       # Used for last PDF
+            "end_from_d": end_from_c       # Used for last PDF
         }
     
     except Exception as e:
