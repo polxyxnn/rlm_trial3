@@ -148,38 +148,42 @@ def format_window(start, end):
 def extract_notam_data(uploaded_file):
     if PdfReader is None:
         st.error("❌ `pypdf` is not installed. Run: `pip install pypdf`")
-        return [], {}
+        return [], {"b_time": "", "c_time": ""}
     try:
         reader = PdfReader(uploaded_file)
         text = "".join(page.extract_text() or "" for page in reader.pages)
         text_upper = text.upper()
 
+        # Coordinates (unchanged)
         coord_pattern = r'(\d{6}[NS])\s*(\d{7}[EW])'
         matches = re.findall(coord_pattern, text_upper)
         coord_strings = [f"{lat} {lon}" for lat, lon in matches]
         if len(coord_strings) > 3 and coord_strings[0] == coord_strings[-1]:
             coord_strings = coord_strings[:-1]
 
-        c_match = re.search(r'C\)\s*(\d{4})-(\d{4})', text_upper)
-        start_time = c_match.group(1) if c_match else ""
-        end_time = c_match.group(2) if c_match else ""
-        if not start_time:
-            b_match = re.search(r'B\)\s*\d{6}(\d{4})', text_upper)
-            if b_match:
-                start_time = b_match.group(1)
+        # === NEW PARSING LOGIC ===
+        # B) → start time (always from 1st PDF)
+        b_match = re.search(r'B\)\s*(\d{10})', text_upper)
+        b_time = b_match.group(1)[-4:] if b_match and len(b_match.group(1)) >= 10 else ""
 
-        #country = "People's Republic of China" if re.search(r'CHINA|PRC', text_upper) else ""
-        #mission_match = re.search(r'SPECIAL OPS \((.*?)\)', text, re.IGNORECASE)
-        #mission = mission_match.group(1).strip() if mission_match else "AEROSPACE FLT ACT"
+        # C) → end time (always from LAST PDF)
+        c_match = re.search(r'C\)\s*(\d{10})', text_upper)
+        c_time = c_match.group(1)[-4:] if c_match and len(c_match.group(1)) >= 10 else ""
+
+        # Fallback for old-style C) 1234-5678 (in case some PDFs still use it)
+        if not c_time:
+            c_range = re.search(r'C\)\s*(\d{4})-(\d{4})', text_upper)
+            if c_range:
+                c_time = c_range.group(2)
 
         return coord_strings, {
-            "start_time": start_time,
-            "end_time": end_time
+            "b_time": b_time,   # HHMM only
+            "c_time": c_time    # HHMM only
         }
     except Exception as e:
         st.error(f"Error parsing {uploaded_file.name}: {str(e)}")
-        return [], {}
-
+        return [], {"b_time": "", "c_time": ""}
+    
 # ====================== CACHED DATA & MAP ======================
 @st.cache_data
 def load_mapping_data(shape_dir: str):
@@ -407,29 +411,42 @@ if uploaded_pdfs:
     st.info(f"📌 {len(uploaded_pdfs)} PDF(s) selected")
     if st.button("🔄 Parse NOTAMs & Auto-fill Dropzones", type="primary", use_container_width=True):
         processed = 0
-        first_meta = {}
-        for pdf_file in uploaded_pdfs:
-            if processed >= 4:
-                st.warning("Only first 4 PDFs processed (max 4 dropzones)")
-                break
+        overall_start = ""
+        overall_end = ""
+
+        for pdf_idx, pdf_file in enumerate(uploaded_pdfs):
             coord_strings, meta = extract_notam_data(pdf_file)
-            if coord_strings and len(coord_strings) >= 3:
-                dz_key = f"DZ{processed + 1}"
-                st.session_state.dz_vertices[dz_key] = coord_strings[:]
-                for idx, val in enumerate(coord_strings):
-                    st.session_state[f"{dz_key}_vert_{idx}"] = val
-                for idx in range(len(coord_strings), 10):
-                    key = f"{dz_key}_vert_{idx}"
-                    if key in st.session_state:
-                        del st.session_state[key]
-                
-                if processed == 0:
-                    first_meta = meta.copy()
-                processed += 1
-        
-        if processed > 0:
-            st.session_state.pending_notam_fill = first_meta
-            st.success(f"✅ Auto-filled {processed} dropzone(s) from NOTAM PDF(s)!")
+
+            # Start time = B) from the VERY FIRST uploaded PDF
+            if pdf_idx == 0:
+                overall_start = meta.get("b_time", "")
+
+            # End time = C) from the VERY LAST uploaded PDF (updates on every loop)
+            overall_end = meta.get("c_time", "")
+
+            # Only fill dropzones from the first 4 valid PDFs
+            if processed < 4:
+                if coord_strings and len(coord_strings) >= 3:
+                    dz_key = f"DZ{processed + 1}"
+                    st.session_state.dz_vertices[dz_key] = coord_strings[:]
+                    for idx, val in enumerate(coord_strings):
+                        st.session_state[f"{dz_key}_vert_{idx}"] = val
+                    for idx in range(len(coord_strings), 10):
+                        key = f"{dz_key}_vert_{idx}"
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    processed += 1
+
+        # Apply times (even if no dropzones were filled)
+        if overall_start or overall_end or processed > 0:
+            st.session_state.pending_notam_fill = {
+                "start_time": overall_start,
+                "end_time": overall_end
+            }
+            st.success(f"✅ Done! "
+                       f"Start (B from 1st PDF) = **{overall_start or '—'}** | "
+                       f"End (C from last PDF) = **{overall_end or '—'}** | "
+                       f"Dropzones filled: {processed}")
             st.rerun()
 
 # ====================== DYNAMIC DROPZONES ======================
