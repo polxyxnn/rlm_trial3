@@ -273,12 +273,31 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
         route.append(ext)
         folium.PolyLine(route, color="black", weight=2, dash_array="5,10", popup="Rocket Ground Track").add_to(m)
 
-    legend = """<div style="position:fixed;bottom:30px;left:30px;z-index:9999;background:white;padding:10px;border:2px solid grey;font-size:13px;">
+    # legend = """<div style="position:fixed;bottom:30px;left:30px;z-index:9999;background:white;padding:10px;border:2px solid grey;font-size:13px;">
+    # <b>Legend</b><br>
+    # <i class="fa fa-rocket" style="color:green"></i> Launch Site<br>
+    # <i class="fa fa-location-crosshairs" style="color:red"></i> Key Locations<br>
+    # <i class="fa fa-trash" style="color:black"></i> Debris<br>
+    # <span style="color:darkgreen;">■</span> Dropzone
+    # </div>"""
+    legend = """
+    <div style="
+        position: fixed; 
+        bottom: 50px; left: 50px; width: 250px; height: 250px; 
+        z-index:9999; font-size:14px;
+        background-color:white;
+        border:2px solid grey;
+        padding: 10px;
+        ">
     <b>Legend</b><br>
-    <i class="fa fa-rocket" style="color:green"></i> Launch Site<br>
-    <i class="fa fa-location-crosshairs" style="color:red"></i> Key Locations<br>
-    <i class="fa fa-trash" style="color:black"></i> Debris<br>
-    <span style="color:darkgreen;">■</span> Dropzone
+    <i class="fa fa-rocket fa-2x" style="color:green"></i> Launch Site<br>
+    <i class="fa fa-location-crosshairs fa-2x" style="color:red"></i> Key Locations<br>
+    <i class="fa fa-trash fa-2x" style="color:black"></i> Debris Point<br>
+    <span style="color:darkblue;">&#9632;</span> Manila FIR<br>
+    <span style="color:gold;">&#9632;</span> PH Baseline<br>
+    <span style="color:blue;">&#9632;</span> PH EEZ<br>
+    <span style="color:green;">&#9632;</span> Dropzone<br>
+    <span style="display:inline-block; width:50px; border-bottom: 2px dashed black;"></span> Rocket Ground Track
     </div>"""
     m.get_root().html.add_child(folium.Element(legend))
     return m
