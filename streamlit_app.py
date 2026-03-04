@@ -30,6 +30,9 @@ if "dz_vertices" not in st.session_state:
     st.session_state.dz_vertices = {f"DZ{i}": [""] * 5 for i in range(1, 5)}
     st.session_state.dz_debris   = {f"DZ{i}": [""] * 4 for i in range(1, 5)}
 
+if "pending_notam_fill" not in st.session_state:
+    st.session_state.pending_notam_fill = None
+
 # Keep lists in sync
 for i in range(1, 5):
     dz = f"DZ{i}"
@@ -151,16 +154,12 @@ def extract_notam_data(uploaded_file):
         text = "".join(page.extract_text() or "" for page in reader.pages)
         text_upper = text.upper()
 
-        # Extract coordinates (FAA NOTAM format)
         coord_pattern = r'(\d{6}[NS])\s*(\d{7}[EW])'
         matches = re.findall(coord_pattern, text_upper)
         coord_strings = [f"{lat} {lon}" for lat, lon in matches]
-
-        # Remove duplicate closing point
         if len(coord_strings) > 3 and coord_strings[0] == coord_strings[-1]:
             coord_strings = coord_strings[:-1]
 
-        # Time window from D) or B)
         d_match = re.search(r'D\)\s*(\d{4})-(\d{4})', text_upper)
         start_time = d_match.group(1) if d_match else ""
         end_time = d_match.group(2) if d_match else ""
@@ -169,7 +168,6 @@ def extract_notam_data(uploaded_file):
             if b_match:
                 start_time = b_match.group(1)
 
-        # Country & Mission
         country = "People's Republic of China" if re.search(r'CHINA|PRC', text_upper) else ""
         mission_match = re.search(r'SPECIAL OPS \((.*?)\)', text, re.IGNORECASE)
         mission = mission_match.group(1).strip() if mission_match else "AEROSPACE FLT ACT"
@@ -281,7 +279,6 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
             folium.Marker([lat, lon], popup=f"{dzid} debris {di+1}",
                           icon=folium.Icon(color="black", icon="trash", prefix="fa")).add_to(m)
 
-    # Ground track
     def polygon_centroid(pts):
         poly = Polygon([(lon, lat) for lat, lon in pts])
         c = poly.centroid
@@ -348,6 +345,19 @@ launch_sites = ["Select...", "Hainan International Commercial Launch Center", "J
 countries = ["Select...", "People's Republic of China", "Japan",
              "Democratic People's Republic of Korea", "Republic of Korea"]
 
+# ====================== APPLY PENDING NOTAM FILL (BEFORE FORM WIDGETS) ======================
+if st.session_state.get("pending_notam_fill"):
+    fill = st.session_state.pending_notam_fill
+    if fill.get("mission"):
+        st.session_state.mission = fill["mission"]
+    if fill.get("country") and fill["country"] in countries:
+        st.session_state.launch_country = fill["country"]
+    if fill.get("start_time"):
+        st.session_state.start_time = fill["start_time"]
+    if fill.get("end_time"):
+        st.session_state.end_time = fill["end_time"]
+    st.session_state.pending_notam_fill = None
+
 # ====================== FORM ======================
 with st.form("rocket_launch_form"):
     st.subheader("🛰 Launch Information")
@@ -364,9 +374,9 @@ with st.form("rocket_launch_form"):
     submitted = st.form_submit_button("🚀 Submit – Preview Map & Generate Files", 
                                       type="primary", use_container_width=True)
 
-# ====================== NOTAM PDF IMPORT (Each PDF = One Dropzone) ======================
+# ====================== NOTAM PDF IMPORT ======================
 st.subheader("📄 Import Dropzones from FAA NOTAM PDF(s)")
-st.caption("**Each PDF represents one dropzone** (PDF 1 → DZ1, PDF 2 → DZ2, PDF 3 → DZ3, PDF 4 → DZ4)")
+st.caption("**Each PDF = one dropzone** (1st PDF → DZ1, 2nd → DZ2, etc.)")
 
 uploaded_pdfs = st.file_uploader(
     "Upload NOTAM PDF file(s)",
@@ -376,17 +386,17 @@ uploaded_pdfs = st.file_uploader(
 )
 
 if uploaded_pdfs:
-    st.info(f"📌 {len(uploaded_pdfs)} PDF(s) selected. First PDF will go to DZ1, second to DZ2, etc.")
+    st.info(f"📌 {len(uploaded_pdfs)} PDF(s) selected")
     if st.button("🔄 Parse NOTAMs & Auto-fill Dropzones", type="primary", use_container_width=True):
         processed = 0
+        first_meta = {}
         for pdf_file in uploaded_pdfs:
             if processed >= 4:
-                st.warning("Only first 4 PDFs were processed (maximum 4 dropzones)")
+                st.warning("Only first 4 PDFs processed (max 4 dropzones)")
                 break
             coord_strings, meta = extract_notam_data(pdf_file)
             if coord_strings and len(coord_strings) >= 3:
                 dz_key = f"DZ{processed + 1}"
-                
                 st.session_state.dz_vertices[dz_key] = coord_strings[:]
                 for idx, val in enumerate(coord_strings):
                     st.session_state[f"{dz_key}_vert_{idx}"] = val
@@ -395,19 +405,12 @@ if uploaded_pdfs:
                     if key in st.session_state:
                         del st.session_state[key]
                 
-                if processed == 0:  # Auto-fill launch info from first PDF only
-                    if meta.get("mission"):
-                        st.session_state.mission = meta["mission"]
-                    if meta.get("country") and meta["country"] in countries:
-                        st.session_state.launch_country = meta["country"]
-                    if meta.get("start_time"):
-                        st.session_state.start_time = meta["start_time"]
-                    if meta.get("end_time"):
-                        st.session_state.end_time = meta["end_time"]
-                
+                if processed == 0:
+                    first_meta = meta.copy()
                 processed += 1
         
         if processed > 0:
+            st.session_state.pending_notam_fill = first_meta
             st.success(f"✅ Auto-filled {processed} dropzone(s) from NOTAM PDF(s)!")
             st.rerun()
 
@@ -417,10 +420,8 @@ st.subheader("🌍 Dropzones DZ1–DZ4")
 for i in range(1, 5):
     dz = f"DZ{i}"
     with st.expander(f"**Dropzone {i}**", expanded=(i == 1)):
-        
         st.caption("**Vertices** (min 3 recommended)")
         current_verts = st.session_state.dz_vertices[dz]
-        
         for idx in range(len(current_verts)):
             st.text_input(
                 label=f"Vertex {idx+1}",
@@ -428,7 +429,6 @@ for i in range(1, 5):
                 key=f"{dz}_vert_{idx}",
                 placeholder="193600N 1183100E"
             )
-
         col_add, col_rem, _ = st.columns([1, 1, 4])
         with col_add:
             if st.button("➕ Add Vertex", key=f"add_v_{dz}", use_container_width=True):
