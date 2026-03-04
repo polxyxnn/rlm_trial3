@@ -15,10 +15,10 @@ st.set_page_config(page_title="PhilSA Rocket Launch Monitoring", page_icon="🚀
 
 # ====================== DYNAMIC DROPZONE STORAGE ======================
 if "dz_vertices" not in st.session_state:
-    st.session_state.dz_vertices = {f"DZ{i}": [""] * 5 for i in range(1, 5)}   # start with 5 vertices
+    st.session_state.dz_vertices = {f"DZ{i}": [""] * 5 for i in range(1, 5)}  # start with 5 vertices
     st.session_state.dz_debris   = {f"DZ{i}": [""] * 4 for i in range(1, 5)}
 
-# Sync any typed values back into the lists (run every rerun)
+# Keep lists in sync with text inputs on every rerun
 for i in range(1, 5):
     dz = f"DZ{i}"
     
@@ -28,12 +28,12 @@ for i in range(1, 5):
         if key in st.session_state:
             st.session_state.dz_vertices[dz][idx] = st.session_state[key]
     
-    # Sync debris (still fixed 4)
+    # Sync debris
     for j in range(4):
         key = f"{dz}_deb_{j}"
         if key in st.session_state:
             st.session_state.dz_debris[dz][j] = st.session_state[key]
-
+            
 # ====================== SAFE PATHS ======================
 if "shape_dir" not in st.session_state:
     st.session_state.shape_dir = "utils/shapefiles"
