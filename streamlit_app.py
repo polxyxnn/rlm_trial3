@@ -11,6 +11,12 @@ from shapely.geometry import Polygon
 from datetime import datetime, timedelta, date
 from streamlit_folium import st_folium
 
+# ====================== PDF SUPPORT ======================
+try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None
+
 st.set_page_config(page_title="PhilSA Rocket Launch Monitoring", page_icon="🚀", layout="wide")
 
 # ====================== SAFE PATHS ======================
@@ -21,20 +27,16 @@ LOGO_PATH = "utils/logos/PhilSA_v1-01.png"
 
 # ====================== DYNAMIC DROPZONE STORAGE ======================
 if "dz_vertices" not in st.session_state:
-    st.session_state.dz_vertices = {f"DZ{i}": [""] * 5 for i in range(1, 5)}   # start with 5 vertices
+    st.session_state.dz_vertices = {f"DZ{i}": [""] * 5 for i in range(1, 5)}
     st.session_state.dz_debris   = {f"DZ{i}": [""] * 4 for i in range(1, 5)}
 
-# Keep lists in sync with text inputs on every rerun
+# Keep lists in sync
 for i in range(1, 5):
     dz = f"DZ{i}"
-    
-    # Sync vertices
     for idx in range(len(st.session_state.dz_vertices[dz])):
         key = f"{dz}_vert_{idx}"
         if key in st.session_state:
             st.session_state.dz_vertices[dz][idx] = st.session_state[key]
-    
-    # Sync debris
     for j in range(4):
         key = f"{dz}_deb_{j}"
         if key in st.session_state:
@@ -138,6 +140,49 @@ def format_window(start, end):
     if not validate_window_format(start) or not validate_window_format(end):
         return None
     return f"{str(start).zfill(4)}-{str(end).zfill(4)} UTC"
+
+# ====================== NOTAM PDF PARSER ======================
+def extract_notam_data(uploaded_file):
+    if PdfReader is None:
+        st.error("❌ `pypdf` is not installed. Run: `pip install pypdf`")
+        return [], {}
+    try:
+        reader = PdfReader(uploaded_file)
+        text = "".join(page.extract_text() or "" for page in reader.pages)
+        text_upper = text.upper()
+
+        # Extract coordinates (FAA NOTAM format)
+        coord_pattern = r'(\d{6}[NS])\s*(\d{7}[EW])'
+        matches = re.findall(coord_pattern, text_upper)
+        coord_strings = [f"{lat} {lon}" for lat, lon in matches]
+
+        # Remove duplicate closing point
+        if len(coord_strings) > 3 and coord_strings[0] == coord_strings[-1]:
+            coord_strings = coord_strings[:-1]
+
+        # Time window from D) or B)
+        d_match = re.search(r'D\)\s*(\d{4})-(\d{4})', text_upper)
+        start_time = d_match.group(1) if d_match else ""
+        end_time = d_match.group(2) if d_match else ""
+        if not start_time:
+            b_match = re.search(r'B\)\s*\d{6}(\d{4})', text_upper)
+            if b_match:
+                start_time = b_match.group(1)
+
+        # Country & Mission
+        country = "People's Republic of China" if re.search(r'CHINA|PRC', text_upper) else ""
+        mission_match = re.search(r'SPECIAL OPS \((.*?)\)', text, re.IGNORECASE)
+        mission = mission_match.group(1).strip() if mission_match else "AEROSPACE FLT ACT"
+
+        return coord_strings, {
+            "start_time": start_time,
+            "end_time": end_time,
+            "country": country,
+            "mission": mission
+        }
+    except Exception as e:
+        st.error(f"Error parsing {uploaded_file.name}: {str(e)}")
+        return [], {}
 
 # ====================== CACHED DATA & MAP ======================
 @st.cache_data
@@ -273,31 +318,12 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
         route.append(ext)
         folium.PolyLine(route, color="black", weight=2, dash_array="5,10", popup="Rocket Ground Track").add_to(m)
 
-    # legend = """<div style="position:fixed;bottom:30px;left:30px;z-index:9999;background:white;padding:10px;border:2px solid grey;font-size:13px;">
-    # <b>Legend</b><br>
-    # <i class="fa fa-rocket" style="color:green"></i> Launch Site<br>
-    # <i class="fa fa-location-crosshairs" style="color:red"></i> Key Locations<br>
-    # <i class="fa fa-trash" style="color:black"></i> Debris<br>
-    # <span style="color:darkgreen;">■</span> Dropzone
-    # </div>"""
-    legend = """
-    <div style="
-        position: fixed; 
-        bottom: 50px; left: 50px; width: 250px; height: 250px; 
-        z-index:9999; font-size:14px;
-        background-color:white;
-        border:2px solid grey;
-        padding: 10px;
-        ">
+    legend = """<div style="position:fixed;bottom:30px;left:30px;z-index:9999;background:white;padding:10px;border:2px solid grey;font-size:13px;">
     <b>Legend</b><br>
-    <i class="fa fa-rocket fa-2x" style="color:green"></i> Launch Site<br>
-    <i class="fa fa-location-crosshairs fa-2x" style="color:red"></i> Key Locations<br>
-    <i class="fa fa-trash fa-2x" style="color:black"></i> Debris Point<br>
-    <span style="color:darkblue;">&#9632;</span> Manila FIR<br>
-    <span style="color:gold;">&#9632;</span> PH Baseline<br>
-    <span style="color:blue;">&#9632;</span> PH EEZ<br>
-    <span style="color:green;">&#9632;</span> Dropzone<br>
-    <span style="display:inline-block; width:50px; border-bottom: 2px dashed black;"></span> Rocket Ground Track
+    <i class="fa fa-rocket" style="color:green"></i> Launch Site<br>
+    <i class="fa fa-location-crosshairs" style="color:red"></i> Key Locations<br>
+    <i class="fa fa-trash" style="color:black"></i> Debris<br>
+    <span style="color:darkgreen;">■</span> Dropzone
     </div>"""
     m.get_root().html.add_child(folium.Element(legend))
     return m
@@ -322,7 +348,7 @@ launch_sites = ["Select...", "Hainan International Commercial Launch Center", "J
 countries = ["Select...", "People's Republic of China", "Japan",
              "Democratic People's Republic of Korea", "Republic of Korea"]
 
-# ====================== FORM (Launch Info Only) ======================
+# ====================== FORM ======================
 with st.form("rocket_launch_form"):
     st.subheader("🛰 Launch Information")
     col1, col2, col3 = st.columns([2, 1, 1])
@@ -338,14 +364,61 @@ with st.form("rocket_launch_form"):
     submitted = st.form_submit_button("🚀 Submit – Preview Map & Generate Files", 
                                       type="primary", use_container_width=True)
 
-# ====================== DYNAMIC DROPZONES (OUTSIDE FORM) ======================
+# ====================== NOTAM PDF IMPORT (Each PDF = One Dropzone) ======================
+st.subheader("📄 Import Dropzones from FAA NOTAM PDF(s)")
+st.caption("**Each PDF represents one dropzone** (PDF 1 → DZ1, PDF 2 → DZ2, PDF 3 → DZ3, PDF 4 → DZ4)")
+
+uploaded_pdfs = st.file_uploader(
+    "Upload NOTAM PDF file(s)",
+    type="pdf",
+    accept_multiple_files=True,
+    key="notam_uploader"
+)
+
+if uploaded_pdfs:
+    st.info(f"📌 {len(uploaded_pdfs)} PDF(s) selected. First PDF will go to DZ1, second to DZ2, etc.")
+    if st.button("🔄 Parse NOTAMs & Auto-fill Dropzones", type="primary", use_container_width=True):
+        processed = 0
+        for pdf_file in uploaded_pdfs:
+            if processed >= 4:
+                st.warning("Only first 4 PDFs were processed (maximum 4 dropzones)")
+                break
+            coord_strings, meta = extract_notam_data(pdf_file)
+            if coord_strings and len(coord_strings) >= 3:
+                dz_key = f"DZ{processed + 1}"
+                
+                st.session_state.dz_vertices[dz_key] = coord_strings[:]
+                for idx, val in enumerate(coord_strings):
+                    st.session_state[f"{dz_key}_vert_{idx}"] = val
+                for idx in range(len(coord_strings), 10):
+                    key = f"{dz_key}_vert_{idx}"
+                    if key in st.session_state:
+                        del st.session_state[key]
+                
+                if processed == 0:  # Auto-fill launch info from first PDF only
+                    if meta.get("mission"):
+                        st.session_state.mission = meta["mission"]
+                    if meta.get("country") and meta["country"] in countries:
+                        st.session_state.launch_country = meta["country"]
+                    if meta.get("start_time"):
+                        st.session_state.start_time = meta["start_time"]
+                    if meta.get("end_time"):
+                        st.session_state.end_time = meta["end_time"]
+                
+                processed += 1
+        
+        if processed > 0:
+            st.success(f"✅ Auto-filled {processed} dropzone(s) from NOTAM PDF(s)!")
+            st.rerun()
+
+# ====================== DYNAMIC DROPZONES ======================
 st.subheader("🌍 Dropzones DZ1–DZ4")
 
 for i in range(1, 5):
     dz = f"DZ{i}"
     with st.expander(f"**Dropzone {i}**", expanded=(i == 1)):
         
-        st.caption("**Vertices** (start with 5 • min 3 recommended)")
+        st.caption("**Vertices** (min 3 recommended)")
         current_verts = st.session_state.dz_vertices[dz]
         
         for idx in range(len(current_verts)):
@@ -353,7 +426,7 @@ for i in range(1, 5):
                 label=f"Vertex {idx+1}",
                 value=current_verts[idx],
                 key=f"{dz}_vert_{idx}",
-                placeholder="14°35'12\"N 120°12'45\"E or 14.5867N 120.2125E"
+                placeholder="193600N 1183100E"
             )
 
         col_add, col_rem, _ = st.columns([1, 1, 4])
@@ -363,7 +436,7 @@ for i in range(1, 5):
                     st.session_state.dz_vertices[dz].append("")
                     st.rerun()
                 else:
-                    st.warning("Maximum 10 vertices allowed")
+                    st.warning("Maximum 10 vertices")
         with col_rem:
             if len(current_verts) > 3 and st.button("➖ Remove Last", key=f"rem_v_{dz}", use_container_width=True):
                 st.session_state.dz_vertices[dz].pop()
@@ -378,7 +451,7 @@ for i in range(1, 5):
                 placeholder="14.5N 120.5E"
             )
 
-# ====================== PERSISTENT MAP DISPLAY ======================
+# ====================== MAP & FILE GENERATION ======================
 if "map_object" not in st.session_state:
     st.session_state.map_object = None
 
@@ -388,16 +461,14 @@ if submitted:
         st.error("❌ Invalid time window. Use HHMM format (e.g. 0745)")
         st.stop()
 
-    # Collect from session_state (dynamic!)
     dropzones = {}
     for i in range(1, 5):
         dz_key = f"DZ{i}"
         dropzones[dz_key] = {
             "vertices": st.session_state.dz_vertices[dz_key].copy(),
-            "debris":   st.session_state.dz_debris[dz_key].copy()
+            "debris": st.session_state.dz_debris[dz_key].copy()
         }
 
-    # Quick validation
     for dz_id, dz in dropzones.items():
         valid_verts = [p.strip() for p in dz["vertices"] if p.strip()]
         if len(valid_verts) < 3 and any(p.strip() for p in dz["vertices"]):
@@ -411,10 +482,8 @@ if submitted:
             st.session_state.shape_dir
         )
 
-    # Generate files
     window_phst = utc_window_to_phst(window_utc)
     
-    # Pad vertices to exactly 8 columns for CAAP format
     dz_compact = []
     for i in range(1, 5):
         verts = dropzones[f"DZ{i}"]["vertices"]
@@ -473,18 +542,9 @@ if submitted:
     st.download_button("📦 Download All Files (ZIP)", data=zip_buffer,
                        file_name=f"PhilSA_Launch_{date_str}.zip", mime="application/zip", use_container_width=True)
 
-# ====================== SHOW MAP (PERSISTENT) ======================
 if st.session_state.map_object is not None:
-
     st.subheader("📍 Live Preview Map")
-
-    st_folium(
-        st.session_state.map_object,
-        width=1400,
-        height=750,
-        returned_objects=[],
-        key="launch_map"
-    )
+    st_folium(st.session_state.map_object, width=1400, height=750, returned_objects=[], key="launch_map")
 
     col_clear, _ = st.columns([1, 3])
     with col_clear:
