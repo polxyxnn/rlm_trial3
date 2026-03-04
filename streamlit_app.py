@@ -160,13 +160,31 @@ def extract_notam_data(uploaded_file):
         if len(coord_strings) > 3 and coord_strings[0] == coord_strings[-1]:
             coord_strings = coord_strings[:-1]
 
-        d_match = re.search(r'D\)\s*(\d{4})-(\d{4})', text_upper)
-        start_time = d_match.group(1) if d_match else ""
-        end_time = d_match.group(2) if d_match else ""
+        # d_match = re.search(r'D\)\s*(\d{4})-(\d{4})', text_upper)
+        # start_time = d_match.group(1) if d_match else ""
+        # end_time = d_match.group(2) if d_match else ""
+        # if not start_time:
+        #     b_match = re.search(r'B\)\s*\d{6}(\d{4})', text_upper)
+        #     if b_match:
+        #         start_time = b_match.group(1)
+
+        # === TIME PARSING (kept for compatibility) ===
+        d_matches = re.findall(r'D\)\s*(\d{4})-(\d{4})', text_upper)
+        start_time = d_matches[0][0] if d_matches else ""
+        end_time   = d_matches[0][1] if d_matches else ""
         if not start_time:
-            b_match = re.search(r'B\)\s*\d{6}(\d{4})', text_upper)
-            if b_match:
-                start_time = b_match.group(1)
+            b_matches = re.findall(r'B\)\s*\d{6}(\d{4})', text_upper)
+            if b_matches:
+                start_time = b_matches[0]
+
+        # === NEW: Specific fields for multi-PDF window as requested ===
+        # Start time from B) line
+        b_matches = re.findall(r'B\)\s*\d{6}(\d{4})', text_upper)
+        start_from_b = b_matches[0] if b_matches else ""
+
+        # End time from D) line
+        d_matches_end = re.findall(r'D\)\s*(\d{4})-(\d{4})', text_upper)
+        end_from_d = d_matches_end[0][1] if d_matches_end else ""
 
         #country = "People's Republic of China" if re.search(r'CHINA|PRC', text_upper) else ""
         #mission_match = re.search(r'SPECIAL OPS \((.*?)\)', text, re.IGNORECASE)
@@ -174,8 +192,11 @@ def extract_notam_data(uploaded_file):
 
         return coord_strings, {
             "start_time": start_time,
-            "end_time": end_time
+            "end_time": end_time,
+            "start_from_b": start_from_b,   # Used for 1st PDF
+            "end_from_d": end_from_d       # Used for last PDF
         }
+    
     except Exception as e:
         st.error(f"Error parsing {uploaded_file.name}: {str(e)}")
         return [], {}
