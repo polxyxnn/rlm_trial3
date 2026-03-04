@@ -28,7 +28,7 @@ LOGO_PATH = "utils/logos/PhilSA_v1-01.png"
 # ====================== DYNAMIC DROPZONE STORAGE ======================
 if "dz_vertices" not in st.session_state:
     st.session_state.dz_vertices = {f"DZ{i}": [""] * 5 for i in range(1, 5)}
-    st.session_state.dz_debris   = {f"DZ{i}": [""] * 4 for i in range(1, 5)}
+    st.session_state.dz_debris   = {f"DZ{i}": [""] * 2 for i in range(1, 5)}
 
 if "pending_notam_fill" not in st.session_state:
     st.session_state.pending_notam_fill = None
@@ -40,7 +40,7 @@ for i in range(1, 5):
         key = f"{dz}_vert_{idx}"
         if key in st.session_state:
             st.session_state.dz_vertices[dz][idx] = st.session_state[key]
-    for j in range(4):
+    for j in range(len(st.session_state.dz_debris[dz])):
         key = f"{dz}_deb_{j}"
         if key in st.session_state:
             st.session_state.dz_debris[dz][j] = st.session_state[key]
@@ -477,14 +477,33 @@ for i in range(1, 5):
                 st.session_state.dz_vertices[dz].pop()
                 st.rerun()
 
-        st.caption("**Debris Points** (fixed 4)")
-        for j in range(4):
+        st.caption("**Debris Points** (min 2, max 4)")
+        current_deb = st.session_state.dz_debris[dz]
+        for idx in range(len(current_deb)):
             st.text_input(
-                label=f"Debris {j+1}",
-                value=st.session_state.dz_debris[dz][j],
-                key=f"{dz}_deb_{j}",
+                label=f"Debris {idx+1}",
+                value=current_deb[idx],
+                key=f"{dz}_deb_{idx}",
                 placeholder="14.5N 120.5E"
             )
+
+        col_add_d, col_rem_d, _ = st.columns([1, 1, 4])
+        with col_add_d:
+            if st.button("➕ Add Debris", key=f"add_d_{dz}", use_container_width=True):
+                if len(current_deb) < 4:
+                    st.session_state.dz_debris[dz].append("")
+                    st.rerun()
+                else:
+                    st.warning("Maximum 4 debris points per dropzone")
+        with col_rem_d:
+            if len(current_deb) > 2 and st.button("➖ Remove Last", key=f"rem_d_{dz}", use_container_width=True):
+                # Clean stale widget key to prevent old data coming back on re-add
+                removed_idx = len(st.session_state.dz_debris[dz]) - 1
+                stale_key = f"{dz}_deb_{removed_idx}"
+                if stale_key in st.session_state:
+                    del st.session_state[stale_key]
+                st.session_state.dz_debris[dz].pop()
+                st.rerun()    
 
 # ====================== MAP & FILE GENERATION ======================
 if "map_object" not in st.session_state:
@@ -526,7 +545,11 @@ if submitted:
         compact_verts += [""] * (8 - len(compact_verts))
         dz_compact.append(compact_verts[:8])
 
-    deb_compact = [[convert_to_compact(c) for c in dropzones[f"DZ{i}"]["debris"]] for i in range(1,5)]
+    deb_compact = []
+    for i in range(1, 5):
+        comp = [convert_to_compact(c) for c in dropzones[f"DZ{i}"]["debris"]]
+        comp += [""] * (4 - len(comp))          # pad to exactly 4 columns
+        deb_compact.append(comp)
 
     date_str = st.session_state.launch_date.strftime("%m%d%y")
     formatted_date = st.session_state.launch_date.strftime("%d %B %Y")
