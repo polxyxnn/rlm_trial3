@@ -362,19 +362,28 @@ live_map = create_folium_map(
 st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_preview")
 
 # ====================== SIDEBAR ======================
+import streamlit as st
+import os
+
 st.markdown(
     """
     <style>
         section[data-testid="stSidebar"] {
-            width: 300px !important; # Set the width to your desired value
+            width: 300px !important;
         }
-    <style>
+
+        /* Center image inside sidebar */
         [data-testid="stSidebar"] [data-testid="stImage"] {
             text-align: center;
             display: block;
             margin-left: auto;
             margin-right: auto;
             width: 100%;
+        }
+
+        /* Center title text */
+        [data-testid="stSidebar"] h1 {
+            text-align: center;
         }
     </style>
     """,
@@ -383,11 +392,11 @@ st.markdown(
 
 with st.sidebar:
     if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, width=500)
+        st.image(LOGO_PATH, width=250)  # 500 is too large for 300px sidebar
     else:
         st.warning("⚠️ Logo not found")
 
-    st.title("Philippine Space Agency", position="center")
+    st.title("Philippine Space Agency")
     st.subheader("🚀 Rocket Launch Monitoring")  
 
     selected_page = st.radio(
