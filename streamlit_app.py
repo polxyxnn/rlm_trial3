@@ -339,10 +339,10 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
     return m
 
 # ====================== MAIN APP ======================
-st.title("🚀 Philippine Space Agency – Rocket Launch Monitoring")
+st.title("Rocket Launch Monitoring and Dropzone Mapping")
 
 # ====================== LIVE MAP PREVIEW (AT THE TOP) ======================
-st.subheader("📍 Live Rocket Launch Preview Map")
+st.subheader("📍 Live Rocket Launch Dropzone Map")
 st.caption("Updates automatically as you edit dropzones, launch info, or upload NOTAM PDFs")
 
 dropzones_preview = {
@@ -371,10 +371,21 @@ st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_p
 #     new_dir = st.text_input("Shapefiles Folder", value=st.session_state.shape_dir, key="shape_dir_input")
 #     if new_dir != st.session_state.shape_dir:
 #         st.session_state.shape_dir = new_dir
+# Inject custom CSS to set the width of the sidebar
 
+st.markdown(
+    """
+    <style>
+        section[data-testid="stSidebar"] {
+            width: 500px !important; # Set the width to your desired value
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 with st.sidebar:
     if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, width=180)
+        st.image(LOGO_PATH, width=180, position="mid")
     else:
         st.warning("⚠️ Logo not found")
 
