@@ -421,7 +421,7 @@ with st.sidebar:
             }
 
             .logo-img {
-                width: 150px;   /* smaller logo */
+                width: 100px;   /* smaller logo */
                 height: auto;
             }
 
