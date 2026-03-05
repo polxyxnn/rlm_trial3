@@ -361,16 +361,36 @@ live_map = create_folium_map(
 st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_preview")
 
 # ====================== SIDEBAR ======================
+# with st.sidebar:
+#     if os.path.exists(LOGO_PATH):
+#         st.image(LOGO_PATH, width=180)
+#     else:
+#         st.warning("⚠️ Logo not found")
+
+#     st.header("📁 Paths")
+#     new_dir = st.text_input("Shapefiles Folder", value=st.session_state.shape_dir, key="shape_dir_input")
+#     if new_dir != st.session_state.shape_dir:
+#         st.session_state.shape_dir = new_dir
+
 with st.sidebar:
     if os.path.exists(LOGO_PATH):
         st.image(LOGO_PATH, width=180)
     else:
         st.warning("⚠️ Logo not found")
 
-    st.header("📁 Paths")
-    new_dir = st.text_input("Shapefiles Folder", value=st.session_state.shape_dir, key="shape_dir_input")
-    if new_dir != st.session_state.shape_dir:
-        st.session_state.shape_dir = new_dir
+    st.title("Philippine Space Agency")
+    st.subheader("🚀 Rocket Launch Monitoring")
+
+    selected_page = st.radio(
+        "Go to",
+        options=[
+            "🚀 Launch Monitoring",
+            "📄 NOTAM Tools",
+            "📊 Reports & History",
+            "⚙️ Settings"
+        ],
+        key="nav_page"
+    )
 
 launch_sites = ["Select...", "Hainan International Commercial Launch Center", "Jiuquan Satellite Launch Center",
                 "Wenchang Space Launch Site", "Xichang Satellite Launch Center",
