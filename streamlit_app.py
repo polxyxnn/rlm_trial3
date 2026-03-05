@@ -406,17 +406,18 @@ with st.sidebar:
                 display: flex;
                 align-items: center;
                 gap: 12px;
+                font-family: Arial, sans-serif;
             }
 
             .logo-img {
-                width: 65px;   /* smaller logo */
+                width: 300px;   /* smaller logo */
                 height: auto;
             }
 
             .logo-text {
                 font-weight: 600;
-                font-size: 20px;
-                color: #f9a01b;
+                font-size: 100px;
+                color: white;
                 line-height: 1.1;
                 margin: 0;
             }
