@@ -547,6 +547,7 @@ if submitted:
 
     date_str = st.session_state.launch_date.strftime("%m%d%y")
     formatted_date = st.session_state.launch_date.strftime("%d %B %Y")
+    mission_str = st.session_state.mission.replace(" ", "") or "N/A"
 
     row_base = {
         "ROCKET NAME": st.session_state.mission,
@@ -592,6 +593,6 @@ if submitted:
 
     st.success(f"✅ Files ready for {formatted_date}!")
     st.download_button("📦 Download All Files (ZIP)", data=zip_buffer,
-                       file_name=f"PhilSA_Launch_{date_str}.zip", mime="application/zip", use_container_width=True)
+                       file_name=f"PhilSA_{mission_str}_{date_str}.zip", mime="application/zip", use_container_width=True)
 
 st.caption("Philippine Space Agency • Streamlit Cloud Ready")
