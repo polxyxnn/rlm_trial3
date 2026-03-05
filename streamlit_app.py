@@ -362,9 +362,6 @@ live_map = create_folium_map(
 st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_preview")
 
 # ====================== SIDEBAR ======================
-import streamlit as st
-import os
-
 st.markdown(
     """
     <style>
