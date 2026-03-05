@@ -1,6 +1,6 @@
 [theme]
 base="dark"
-primaryColor="slateBlue"
+primaryColor="skyBlue"
 
 [theme.sidebar]
 primaryColor="darkGoldenrod"
