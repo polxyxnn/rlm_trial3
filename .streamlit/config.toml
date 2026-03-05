@@ -1,4 +1,5 @@
 [theme]
+base="dark"
 primaryColor="skyBlue"
 
 [theme.sidebar]
