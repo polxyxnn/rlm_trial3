@@ -399,6 +399,10 @@ st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_p
 #     st.subheader("🚀 Rocket Launch Monitoring")
 
 with st.sidebar:
+    if os.path.exists(LOGO_PATH):
+        st.image(LOGO_PATH, width=500)
+    else:
+        st.warning("⚠️ Logo not found")
     st.markdown(
         """
         <style>
@@ -406,7 +410,7 @@ with st.sidebar:
                 display: flex;
             }
             .logo-text {
-                font-weight:700 !important;
+                font-weight:100 !important;
                 font-size:50px !important;
                 color: #f9a01b !important;
                 padding-top: 75px !important;
@@ -423,7 +427,11 @@ with st.sidebar:
             f"""
             <div class="container">
                 <img class="logo-img" src="data:image/png;base64,{base64.b64encode(open(LOGO_PATH, "rb").read()).decode()}">
-                <p class="logo-text">Philippines<br>Space<br>Agency</p>
+                <p class="logo-text">
+                Philippine<br>
+                Space<br>
+                Agency
+            </p>
             </div>
             """,
             unsafe_allow_html=True
