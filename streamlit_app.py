@@ -389,7 +389,7 @@ with st.sidebar:
     else:
         st.warning("⚠️ Logo not found")
 
-    st.title("Philippine Space Agency")
+    st.title("Philippine Space Agency", text_alignment="center")
     st.subheader("🚀 Rocket Launch Monitoring")
 
     selected_page = st.radio(
