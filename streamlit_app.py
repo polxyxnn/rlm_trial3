@@ -423,7 +423,7 @@ with st.sidebar:
             f"""
             <div class="container">
                 <img class="logo-img" src="data:image/png;base64,{base64.b64encode(open(LOGO_PATH, "rb").read()).decode()}">
-                <p class="logo-text">Philippine Space Agency</p>
+                <p class="logo-text">Philippines<br>Space<br>Agency</p>
             </div>
             """,
             unsafe_allow_html=True
