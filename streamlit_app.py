@@ -320,7 +320,7 @@ def create_folium_map(launch_site_value, dropzones, shape_dir):
         position: fixed; 
         bottom: 50px; left: 50px; width: 250px; height: 250px; 
         z-index:9999; font-size:14px;
-        background-color:#87CEEB;
+        background-color:#AAD3DF;
         border:2px solid black;
         padding: 10px;
         ">
