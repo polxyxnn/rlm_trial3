@@ -399,39 +399,45 @@ st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_p
 #     st.subheader("🚀 Rocket Launch Monitoring")
 
 with st.sidebar:
-    if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, width=500)
-    else:
-        st.warning("⚠️ Logo not found")
     st.markdown(
         """
         <style>
-            .container {
+            .sidebar-header {
                 display: flex;
+                align-items: center;
+                gap: 12px;
             }
-            .logo-text {
-                font-weight:100 !important;
-                font-size:50px !important;
-                color: #f9a01b !important;
-                padding-top: 75px !important;
-            }
+
             .logo-img {
-                float:right;
+                width: 65px;   /* smaller logo */
+                height: auto;
+            }
+
+            .logo-text {
+                font-weight: 600;
+                font-size: 20px;
+                color: #f9a01b;
+                line-height: 1.1;
+                margin: 0;
             }
         </style>
         """,
         unsafe_allow_html=True
     )
+
     if os.path.exists(LOGO_PATH):
+        with open(LOGO_PATH, "rb") as f:
+            logo_base64 = base64.b64encode(f.read()).decode()
+
         st.markdown(
             f"""
-            <div class="container">
-                <img class="logo-img" src="data:image/png;base64,{base64.b64encode(open(LOGO_PATH, "rb").read()).decode()}">
+            <div class="sidebar-header">
+                <img class="logo-img" src="data:image/png;base64,{logo_base64}">
                 <p class="logo-text">
-                Philippine<br>
-                Space<br>
-                Agency
-            </p>
+                    Philippine<br>
+                    Space<br>
+                    Agency
+                </p>
             </div>
             """,
             unsafe_allow_html=True
