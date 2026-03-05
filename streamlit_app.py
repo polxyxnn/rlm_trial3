@@ -24,7 +24,7 @@ st.set_page_config(page_title="PhilSA Rocket Launch Monitoring", page_icon="🚀
 if "shape_dir" not in st.session_state:
     st.session_state.shape_dir = "utils/shapefiles"
 
-LOGO_PATH = "utils/logos/PhilSA_v1-01.png"
+LOGO_PATH = "utils/logos/PhilSA_v1_White.png"
 
 # ====================== DYNAMIC DROPZONE STORAGE ======================
 if "dz_vertices" not in st.session_state:
