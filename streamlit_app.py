@@ -392,7 +392,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-✅ Combined
 with st.sidebar:
     if os.path.exists(LOGO_PATH):
         st.image(LOGO_PATH, width=180)
