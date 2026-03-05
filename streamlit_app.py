@@ -416,7 +416,7 @@ with st.sidebar:
             .sidebar-header {
                 display: flex;
                 align-items: center;
-                gap: 12px;
+                gap: 24px;
                 font-family: Arial, sans-serif;
             }
 
@@ -427,7 +427,7 @@ with st.sidebar:
 
             .logo-text {
                 font-weight: 600;
-                font-size: 650px;
+                font-size: 1000px;
                 color: white;
                 line-height: 1.1;
                 margin: 0;
