@@ -1,0 +1,6 @@
+[theme]
+base="dark"
+primaryColor="Blue"
+
+[theme.sidebar]
+primaryColor="darkGoldenrod"
