@@ -427,7 +427,7 @@ with st.sidebar:
 
             .logo-text {
                 font-weight: 600;
-                font-size: 1000px;
+                font-size: 20px;
                 color: white;
                 line-height: 1.1;
                 margin: 0;
