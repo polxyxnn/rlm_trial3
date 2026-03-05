@@ -423,14 +423,7 @@ with st.sidebar:
             .logo-img {
                 width: 100px;   /* smaller logo */
                 height: auto;
-            }
-
-            .logo-text {
-                font-weight: 600;
-                font-size: 50px;
-                color: white;
-                line-height: 1.1;
-                margin: 0;
+                align-items: center;
             }
         </style>
         """,
@@ -457,6 +450,7 @@ with st.sidebar:
     else:
         st.warning("⚠️ Logo not found")
 
+    st.title("Philippine Space Agency", position="center", font="Arial", size=24)
     st.subheader("🚀 Rocket Launch Monitoring")  
 
     selected_page = st.radio(
