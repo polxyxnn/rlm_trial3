@@ -7,6 +7,7 @@ import zipfile
 import pandas as pd
 import geopandas as gpd
 import folium
+import base64
 from shapely.geometry import Polygon
 from datetime import datetime, timedelta, date
 from streamlit_folium import st_folium
@@ -388,14 +389,49 @@ st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_p
 #     unsafe_allow_html=True
 # )
 
+# with st.sidebar:
+#     if os.path.exists(LOGO_PATH):
+#         st.image(LOGO_PATH, width=500)
+#     else:
+#         st.warning("⚠️ Logo not found")
+
+#     #st.title("Philippine Space Agency", text_alignment="center")
+#     st.subheader("🚀 Rocket Launch Monitoring")
+
 with st.sidebar:
+    st.markdown(
+        """
+        <style>
+            .container {
+                display: flex;
+            }
+            .logo-text {
+                font-weight:700 !important;
+                font-size:50px !important;
+                color: #f9a01b !important;
+                padding-top: 75px !important;
+            }
+            .logo-img {
+                float:right;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
     if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, width=180)
+        st.markdown(
+            f"""
+            <div class="container">
+                <img class="logo-img" src="data:image/png;base64,{base64.b64encode(open(LOGO_PATH, "rb").read()).decode()}">
+                <p class="logo-text">Philippine Space Agency</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     else:
         st.warning("⚠️ Logo not found")
 
-    #st.title("Philippine Space Agency", text_alignment="center")
-    st.subheader("🚀 Rocket Launch Monitoring")
+    st.subheader("🚀 Rocket Launch Monitoring")  
 
     selected_page = st.radio(
         "Go to",
