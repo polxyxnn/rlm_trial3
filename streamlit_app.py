@@ -23,7 +23,7 @@ st.set_page_config(page_title="PhilSA Rocket Launch Monitoring", page_icon="🚀
 if "shape_dir" not in st.session_state:
     st.session_state.shape_dir = "utils/shapefiles"
 
-LOGO_PATH = "utils/logos/PhilSA_v1-01.png"
+LOGO_PATH = "utils/logos/Philsa_name_color.png"
 
 # ====================== DYNAMIC DROPZONE STORAGE ======================
 if "dz_vertices" not in st.session_state:
@@ -373,20 +373,20 @@ st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_p
 #         st.session_state.shape_dir = new_dir
 # Inject custom CSS to set the width of the sidebar
 
-st.markdown(
-    """
-    <style>
-        [data-testid="stSidebar"] [data-testid="stImage"] {
-            text-align: center;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            width: 100%;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# st.markdown(
+#     """
+#     <style>
+#         [data-testid="stSidebar"] [data-testid="stImage"] {
+#             text-align: center;
+#             display: block;
+#             margin-left: auto;
+#             margin-right: auto;
+#             width: 100%;
+#         }
+#     </style>
+#     """,
+#     unsafe_allow_html=True
+# )
 
 with st.sidebar:
     if os.path.exists(LOGO_PATH):
@@ -394,7 +394,7 @@ with st.sidebar:
     else:
         st.warning("⚠️ Logo not found")
 
-    st.title("Philippine Space Agency", text_alignment="center")
+    #st.title("Philippine Space Agency", text_alignment="center")
     st.subheader("🚀 Rocket Launch Monitoring")
 
     selected_page = st.radio(
