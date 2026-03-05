@@ -385,7 +385,7 @@ st.markdown(
 )
 with st.sidebar:
     if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, width=180, position="mid")
+        st.image(LOGO_PATH, width=180)
     else:
         st.warning("⚠️ Logo not found")
 
