@@ -398,6 +398,17 @@ st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_p
 #     #st.title("Philippine Space Agency", text_alignment="center")
 #     st.subheader("🚀 Rocket Launch Monitoring")
 
+st.markdown(
+    """
+    <style>
+        section[data-testid="stSidebar"] {
+            width: 300px !important; # Set the width to your desired value
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 with st.sidebar:
     st.markdown(
         """
@@ -410,7 +421,7 @@ with st.sidebar:
             }
 
             .logo-img {
-                width: 300px;   /* smaller logo */
+                width: 150px;   /* smaller logo */
                 height: auto;
             }
 
