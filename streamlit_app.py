@@ -376,10 +376,6 @@ st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_p
 st.markdown(
     """
     <style>
-        section[data-testid="stSidebar"] {
-            width: 350px !important; /* Set the width to your desired value */
-        }
-
         [data-testid="stSidebar"] [data-testid="stImage"] {
             text-align: center;
             display: block;
