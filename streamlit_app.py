@@ -362,91 +362,28 @@ live_map = create_folium_map(
 st_folium(live_map, width=1400, height=750, returned_objects=[], key="live_map_preview")
 
 # ====================== SIDEBAR ======================
-# with st.sidebar:
-#     if os.path.exists(LOGO_PATH):
-#         st.image(LOGO_PATH, width=180)
-#     else:
-#         st.warning("⚠️ Logo not found")
-
-#     st.header("📁 Paths")
-#     new_dir = st.text_input("Shapefiles Folder", value=st.session_state.shape_dir, key="shape_dir_input")
-#     if new_dir != st.session_state.shape_dir:
-#         st.session_state.shape_dir = new_dir
-# Inject custom CSS to set the width of the sidebar
-
-# st.markdown(
-#     """
-#     <style>
-#         [data-testid="stSidebar"] [data-testid="stImage"] {
-#             text-align: center;
-#             display: block;
-#             margin-left: auto;
-#             margin-right: auto;
-#             width: 100%;
-#         }
-#     </style>
-#     """,
-#     unsafe_allow_html=True
-# )
-
-# with st.sidebar:
-#     if os.path.exists(LOGO_PATH):
-#         st.image(LOGO_PATH, width=500)
-#     else:
-#         st.warning("⚠️ Logo not found")
-
-#     #st.title("Philippine Space Agency", text_alignment="center")
-#     st.subheader("🚀 Rocket Launch Monitoring")
-
 st.markdown(
     """
     <style>
         section[data-testid="stSidebar"] {
             width: 300px !important; # Set the width to your desired value
         }
+    <style>
+        [data-testid="stSidebar"] [data-testid="stImage"] {
+            text-align: center;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+        }
     </style>
     """,
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
 
 with st.sidebar:
-    st.markdown(
-        """
-        <style>
-            .sidebar-header {
-                display: flex;
-                align-items: center;
-                gap: 24px;
-                font-family: Arial, sans-serif;
-            }
-
-            .logo-img {
-                width: 100px;   /* smaller logo */
-                height: auto;
-                align-items: center;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
     if os.path.exists(LOGO_PATH):
-        with open(LOGO_PATH, "rb") as f:
-            logo_base64 = base64.b64encode(f.read()).decode()
-
-        st.markdown(
-            f"""
-            <div class="sidebar-header">
-                <img class="logo-img" src="data:image/png;base64,{logo_base64}">
-                <p class="logo-text">
-                    Philippine<br>
-                    Space<br>
-                    Agency
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.image(LOGO_PATH, width=500)
     else:
         st.warning("⚠️ Logo not found")
 
