@@ -92,34 +92,105 @@ def parse_coordinates(coord_str):
         return round(float(m.group(1)), 6), round(float(m.group(2)), 6)
     return None, None
 
+# def convert_to_compact(raw_str):
+#     if not raw_str or str(raw_str).strip() == "":
+#         return ""
+#     s = str(raw_str).upper().replace(" ", "").strip()
+#     m = re.match(r'^([NS])(\d{2})(\d{2})([EW])(\d{3})(\d{2})$', s)
+#     if m:
+#         return f"{m.group(1)}{m.group(2)}{m.group(3)}{m.group(4)}{m.group(5)}{m.group(6)}"
+#     m2 = re.search(r'([NS])\s*(\d{2})(\d{2})\s*([EW])\s*(\d{3})(\d{2})', s)
+#     if m2:
+#         return f"{m2.group(1)}{m2.group(2)}{m2.group(3)}{m2.group(4)}{m2.group(5)}{m2.group(6)}"
+#     latlon = parse_coordinates(raw_str)
+#     if not latlon or latlon[0] is None:
+#         return ""
+#     lat_dd, lon_dd = latlon
+#     def dd_to_compact(dd, is_lat=True):
+#         hemi = 'N' if (is_lat and dd >= 0) else 'S' if is_lat else 'E' if dd >= 0 else 'W'
+#         d = abs(dd)
+#         deg = int(d)
+#         minutes_full = (d - deg) * 60
+#         minute = int(minutes_full)
+#         sec = (minutes_full - minute) * 60
+#         if sec >= 30:
+#             minute += 1
+#             if minute == 60:
+#                 minute = 0
+#                 deg += 1
+#         return f"{hemi}{deg:02d}{minute:02d}" if is_lat else f"{hemi}{deg:03d}{minute:02d}"
+#     return dd_to_compact(lat_dd, True) + dd_to_compact(lon_dd, False)
+
 def convert_to_compact(raw_str):
     if not raw_str or str(raw_str).strip() == "":
         return ""
     s = str(raw_str).upper().replace(" ", "").strip()
-    m = re.match(r'^([NS])(\d{2})(\d{2})([EW])(\d{3})(\d{2})$', s)
-    if m:
-        return f"{m.group(1)}{m.group(2)}{m.group(3)}{m.group(4)}{m.group(5)}{m.group(6)}"
-    m2 = re.search(r'([NS])\s*(\d{2})(\d{2})\s*([EW])\s*(\d{3})(\d{2})', s)
-    if m2:
-        return f"{m2.group(1)}{m2.group(2)}{m2.group(3)}{m2.group(4)}{m2.group(5)}{m2.group(6)}"
-    latlon = parse_coordinates(raw_str)
-    if not latlon or latlon[0] is None:
-        return ""
-    lat_dd, lon_dd = latlon
-    def dd_to_compact(dd, is_lat=True):
-        hemi = 'N' if (is_lat and dd >= 0) else 'S' if is_lat else 'E' if dd >= 0 else 'W'
+
+    def dd_to_formatted(dd, is_lat=True):
+        hemi = 'N' if (is_lat and dd >= 0) else 'S' if is_lat else 'E' if (dd >= 0) else 'W'
         d = abs(dd)
         deg = int(d)
-        minutes_full = (d - deg) * 60
-        minute = int(minutes_full)
-        sec = (minutes_full - minute) * 60
-        if sec >= 30:
+        min_full = (d - deg) * 60
+        minute = int(min_full)
+        sec_full = (min_full - minute) * 60
+        sec = int(sec_full + 0.5)          # round to nearest second (half up)
+        if sec == 60:
+            sec = 0
             minute += 1
             if minute == 60:
                 minute = 0
                 deg += 1
-        return f"{hemi}{deg:02d}{minute:02d}" if is_lat else f"{hemi}{deg:03d}{minute:02d}"
-    return dd_to_compact(lat_dd, True) + dd_to_compact(lon_dd, False)
+        if is_lat:
+            return f"{hemi} {deg:02d} {minute:02d} {sec:02d}"
+        else:
+            return f"{hemi} {deg:03d} {minute:02d} {sec:02d}"
+
+    # === ENHANCED REGEX: now supports your exact format too ===
+    # Full DMS compact (with seconds) - catches "N123456E1234556" (after space removal)
+    m_full = re.match(r'^([NS])(\d{2})(\d{2})(\d{2})([EW])(\d{3})(\d{2})(\d{2})$', s)
+    if m_full:
+        g = m_full.groups()
+        has_sec = True
+    else:
+        # Original compact (no seconds)
+        m = re.match(r'^([NS])(\d{2})(\d{2})([EW])(\d{3})(\d{2})$', s)
+        if m:
+            g = m.groups()
+            has_sec = False
+        else:
+            # Fallback for any remaining spaced old format
+            m2 = re.search(r'([NS])\s*(\d{2})(\d{2})\s*([EW])\s*(\d{3})(\d{2})', s)
+            if m2:
+                g = m2.groups()
+                has_sec = False
+            else:
+                g = None
+
+    if g is not None:
+        if has_sec:
+            lat_h, lat_dg_str, lat_mn_str, lat_sc_str, lon_h, lon_dg_str, lon_mn_str, lon_sc_str = g
+            lat_dd = int(lat_dg_str) + int(lat_mn_str) / 60 + int(lat_sc_str) / 3600
+            if lat_h == "S":
+                lat_dd = -lat_dd
+            lon_dd = int(lon_dg_str) + int(lon_mn_str) / 60 + int(lon_sc_str) / 3600
+            if lon_h == "W":
+                lon_dd = -lon_dd
+        else:
+            lat_h, lat_dg_str, lat_mn_str, lon_h, lon_dg_str, lon_mn_str = g
+            lat_dd = int(lat_dg_str) + int(lat_mn_str) / 60
+            if lat_h == "S":
+                lat_dd = -lat_dd
+            lon_dd = int(lon_dg_str) + int(lon_mn_str) / 60
+            if lon_h == "W":
+                lon_dd = -lon_dd
+        return dd_to_formatted(lat_dd, True) + " " + dd_to_formatted(lon_dd, False)
+
+    # === Fallback to your existing parse_coordinates (unchanged) ===
+    latlon = parse_coordinates(raw_str)
+    if not latlon or latlon[0] is None:
+        return ""
+    lat_dd, lon_dd = latlon
+    return dd_to_formatted(lat_dd, True) + " " + dd_to_formatted(lon_dd, False)
 
 def utc_window_to_phst(window_utc: str) -> str:
     try:
