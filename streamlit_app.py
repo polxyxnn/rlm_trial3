@@ -141,9 +141,9 @@ def convert_to_compact(raw_str):
                 minute = 0
                 deg += 1
         if is_lat:
-            return f"{hemi} {deg:02d} {minute:02d} {sec:02d}"
+            return f"{hemi}{deg:02d} {minute:02d} {sec:02d}"
         else:
-            return f"{hemi} {deg:03d} {minute:02d} {sec:02d}"
+            return f"{hemi}{deg:03d} {minute:02d} {sec:02d}"
 
     # === ENHANCED REGEX: now supports your exact format too ===
     # Full DMS compact (with seconds) - catches "N123456E1234556" (after space removal)
